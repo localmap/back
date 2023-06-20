@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_yasg.utils import swagger_auto_schema
 from django.contrib.auth.models import update_last_login
-from accounts.serializers import UserSerializer
+from accounts.serializers import UserSerializer,UserInfoSerializer
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.contrib.sites.shortcuts import get_current_site
@@ -81,7 +81,7 @@ def signup(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@swagger_auto_schema(method='post', request_body=UserSerializer)
+@swagger_auto_schema(method='post', request_body=UserInfoSerializer)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
