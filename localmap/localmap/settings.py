@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'notice',
     'corsheaders',
     'hjd',
+    'restaurant',
 ]
 
 AUTH_USER_MODEL = 'accounts.User' # 커스텀 유저를 장고에서 사용하기 위함
