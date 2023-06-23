@@ -201,7 +201,7 @@ SWAGGER_SETTINGS = {
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header',
-            'description': 'JWT를 사용하려면 <b>Bearer JWT토큰</b> 형식으로 작성해주세요.'
+            'description': 'JWT를 사용하려면 <b>Bearer JWT토큰</b> 형식으로 작성해주세요.',
         }
     }
 }

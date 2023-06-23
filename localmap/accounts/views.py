@@ -1,7 +1,7 @@
 from drf_yasg import openapi
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny,IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_yasg.utils import swagger_auto_schema
@@ -30,7 +30,7 @@ from accounts.models import User
             'name': openapi.Schema(type=openapi.TYPE_STRING, description="이름"),
         }
     ),
-    tags=['유저'],
+    tags=['User'],
     responses={200: openapi.Response(
         description="200 OK",
         schema=openapi.Schema(
@@ -81,7 +81,7 @@ def signup(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@swagger_auto_schema(method='post', request_body=UserInfoSerializer)
+@swagger_auto_schema(method='post', request_body=UserInfoSerializer, tags=['User'],)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
@@ -109,7 +109,28 @@ def login(request):
         # 인증에 실패한 경우알림
         return Response({'message': '아이디 또는 비밀번호가 일치하지 않습니다.'}, status=status.HTTP_401_UNAUTHORIZED)
 
+@swagger_auto_schema(method='delete', tags=['User'],)
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete(request):
+    user = request.user
+    user.delete()
 
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+@swagger_auto_schema(method='put', tags=['User'],)
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update(request):
+    user = request.user
+    serializer = UserSerializer(user, data=request.data, partial=True)
+
+    if serializer.is_valid(raise_exception=True):
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(method='get', tags=['User'],)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def activate(request, uidb64, token):
