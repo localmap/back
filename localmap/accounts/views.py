@@ -85,8 +85,12 @@ def signup(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
+    """
     email = request.data['body']['email']
     password = request.data['body']['password']
+    """
+    email = request.data.get('email')
+    password = request.data.get('password')
 
     user = User.objects.filter(email=email).first()
     if user is not None and user.check_password(password):

@@ -11,7 +11,7 @@ class Categories(models.Model):
         db_table = 'categories'
 
 class Restaurant(models.Model):
-    rest_id = models.UUIDField(primary_key=True, default=uuid.uuid4(), editable=False)
+    rest_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     area_id = models.ForeignKey(Hjd, on_delete=models.CASCADE, db_column='area_id', to_field='id',default=1)
     category_name = models.ForeignKey(Categories, on_delete=models.CASCADE,db_column='category_name',to_field='category_name',default='한식')
     user = models.ForeignKey(
