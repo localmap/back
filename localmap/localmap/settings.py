@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'hjd',
     'restaurant',
     'registration',
+    'editor',
 ]
 
 AUTH_USER_MODEL = 'accounts.User' # 커스텀 유저를 장고에서 사용하기 위함
@@ -226,5 +227,5 @@ CORS_ALLOW_HEADERS = (
     "x-requested-with",
     "Access-Control-Allow-Origin",
 )
-
+CORS_ALLOW_CREDENTIALS = True
 #GDAL_LIBRARY_PATH = 'C:/Users/88mic/Desktop/maps/venv/Lib/site-packages/GDAL-3.4.3.dist-info'

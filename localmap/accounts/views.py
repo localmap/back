@@ -80,15 +80,15 @@ def signup(request):
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+"""
+    email = request.data['body']['email']
+    password = request.data['body']['password']
+"""
 @swagger_auto_schema(method='post', request_body=UserInfoSerializer, tags=['User'],)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
-    """
-    email = request.data['body']['email']
-    password = request.data['body']['password']
-    """
+
     email = request.data.get('email')
     password = request.data.get('password')
 
