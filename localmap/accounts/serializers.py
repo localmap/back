@@ -16,3 +16,13 @@ class UserInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ('email','password')
+
+class UserPwresetSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = get_user_model()
+        fields = ('email','name')
+
+class PwresetSerializer(serializers.Serializer):
+    new_pw = serializers.CharField(write_only=True)
+    pw_confirm = serializers.CharField(write_only=True)
