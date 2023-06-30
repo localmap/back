@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from restaurant.models import Restaurant
-from editor.serializers import EditorSerializer, EditorSerializer_create
+from editor.serializers import EditorSerializer, EditorSerializer_create, EditorDetailSerializer
 from .models import Editor
 
 from drf_yasg.utils import swagger_auto_schema
@@ -96,3 +96,17 @@ def editor_delete(request, pk):
     rest = get_object_or_404(Editor, pk=pk)
     rest.delete()
     return Response(status=status.HTTP_200_OK)
+
+@swagger_auto_schema(
+    method='get',
+    operation_id='컬럼 페이지',
+    operation_description='페이지 요청값',
+    tags=['Editor'],
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def editor_details(request, pk):
+    editor = get_object_or_404(Editor, pk=pk)
+    serializer = EditorDetailSerializer(editor)
+
+    return Response(serializer.data, status=status.HTTP_200_OK)
