@@ -81,8 +81,8 @@ def signup(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 """
-    email = request.data.get('email')
-    password = request.data.get('password')
+    email = request.data['body']['email']
+    password = request.data['body']['password']
 """
 
 @swagger_auto_schema(method='post', request_body=UserInfoSerializer, tags=['User'],)
@@ -90,8 +90,8 @@ def signup(request):
 @permission_classes([AllowAny])
 def login(request):
 
-    email = request.data['body']['email']
-    password = request.data['body']['password']
+    email = request.data.get('email')
+    password = request.data.get('password')
 
     user = User.objects.filter(email=email).first()
     if user is not None and user.check_password(password):
