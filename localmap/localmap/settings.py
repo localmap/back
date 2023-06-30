@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'editor',
     'events',
     'review',
+    'menu',
 ]
 
 AUTH_USER_MODEL = 'accounts.User' # 커스텀 유저를 장고에서 사용하기 위함
