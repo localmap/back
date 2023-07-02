@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from menu.serializers import MenuSerializer
@@ -20,22 +20,16 @@ from drf_yasg.utils import swagger_auto_schema
     request_body=MenuSerializer,
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])  #유저인 경우
+@permission_classes([IsAuthenticated, IsAdminUser])
 @authentication_classes([JWTAuthentication])  # JWT 토큰 확인
 def menu_create(request):
     serializer = MenuSerializer(data=request.data)
-    rest_id = request.data.get('rest_id')
 
     if serializer.is_valid(raise_exception=True):
-
-        restaurant = Restaurant.objects.get(rest_id=rest_id)
-        user_email = restaurant.user.email
-
-        if user_email == request.user.email:
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response({'message': '권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    else:
+        return Response({'message': '권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
 
 @swagger_auto_schema(
     method='get',
@@ -71,24 +65,21 @@ def menu_detail(request, pk):
     operation_id='메뉴 수정',
     operation_description='메뉴를 수정합니다',
     tags=['Menu'],
-    responses={200: MenuSerializer(many=True)}
+    responses={200: MenuSerializer},
+    request_body=MenuSerializer
 )
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminUser])
 @authentication_classes([JWTAuthentication])  # JWT 토큰 확인
 def menu_update(request, pk):
     menu = get_object_or_404(Menu, pk=pk)
     serializer = MenuSerializer(instance=menu, data=request.data)
 
     if serializer.is_valid(raise_exception=True):
-        restaurant = Restaurant.objects.get(rest_id=menu.rest_id_id)
-        user_email = restaurant.user.email
-
-        if user_email == request.user.email :
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            return Response({'message': '권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    else:
+        return Response({'message': '권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
 
 @swagger_auto_schema(
     method='delete',
@@ -98,15 +89,9 @@ def menu_update(request, pk):
     responses={200: MenuSerializer}
 )
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminUser])
 @authentication_classes([JWTAuthentication])  # JWT 토큰 확인
 def menu_delete(request, pk):
     menu = get_object_or_404(Menu, pk=pk)
-    restaurant = Restaurant.objects.get(rest_id=menu.rest_id_id)
-    user_email = restaurant.user.email
-
-    if user_email == request.user.email:
-        menu.delete()
-        return Response({'message': '메뉴 삭제 성공'}, status=status.HTTP_200_OK)
-    else:
-        return Response({'message': '권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
+    menu.delete()
+    return Response({'message': '메뉴 삭제 성공'}, status=status.HTTP_200_OK)
