@@ -7,4 +7,6 @@ urlpatterns = [
     path('<uuid:pk>', views.rest_detail, name='rest_detail'),
     path('update/<uuid:pk>', views.rest_update, name='rest_update'),
     path('delete/<uuid:pk>', views.rest_delete, name='rest_delete'),
+    path('search/', views.rest_search, name='rest_search'),
 ]
+

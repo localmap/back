@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_yasg.utils import swagger_auto_schema
 from django.contrib.auth.models import update_last_login
-from accounts.serializers import UserSerializer,UserInfoSerializer,UserPwresetSerializer,UserPwchangeSerializer
+from accounts.serializers import UserSerializer,UserInfoSerializer,UserPwresetSerializer,UserPwchangeSerializer, UserUpdateSerializer
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.contrib.sites.shortcuts import get_current_site
@@ -88,14 +88,14 @@ def signup(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
-
+    """
     email = request.data['body']['email']
     password = request.data['body']['password']
 
     """
     email = request.data.get('email')
     password = request.data.get('password')
-    """
+
     user = User.objects.filter(email=email).first()
     if user is not None and user.check_password(password):
         # 추가적인 조건 검사 (예: 이메일 인증 여부)
@@ -105,7 +105,10 @@ def login(request):
             update_last_login(None, user)
 
             return Response({'refresh_token': str(refresh),
-                             'access_token': str(refresh.access_token)}, status=status.HTTP_200_OK)
+                             'access_token': str(refresh.access_token),
+                             'email': user.email,
+                             'name': user.name,
+                             }, status=status.HTTP_200_OK)
         else:
             # 인증에는 성공했지만 추가적인 조건을 충족하지 않은 경우 (예: 이메일 미인증)
             return Response({'message': '이메일 인증을 하세요.'}, status=status.HTTP_403_FORBIDDEN)
@@ -122,18 +125,17 @@ def delete(request):
 
     return Response(status=status.HTTP_204_NO_CONTENT)
 
-@swagger_auto_schema(method='put', tags=['User'],)
+@swagger_auto_schema(method='put', request_body=UserSerializer, tags=['User'],)
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def update(request):
     user = request.user
-    serializer = UserSerializer(user, data=request.data, partial=True)
+    serializer = UserUpdateSerializer(user, data=request.data, partial=True)
 
     if serializer.is_valid(raise_exception=True):
         serializer.save()
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
+    return Response(serializer.data, status=status.HTTP_200_OK)
 @swagger_auto_schema(method='post', tags=['User'], request_body=UserPwchangeSerializer)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
