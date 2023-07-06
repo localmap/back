@@ -14,13 +14,15 @@ from pathlib import Path
 import json
 import sys
 import os
+
 # Path(__file__).resolve() = 현재파일의 절대경로
 # .parent.parent = 상위폴더의 상위폴더 localmap(소스폴더)
 BASE_DIR = Path(__file__).resolve().parent.parent
-if os.name == 'nt': #venv GDAL설정
-	VIRTUAL_ENV_BASE = os.environ['VIRTUAL_ENV']
-	os.environ['PATH'] = os.path.join(VIRTUAL_ENV_BASE, r'.\Lib\site-packages\osgeo') + ';' + os.environ['PATH']
-	os.environ['PROJ_LIB'] = os.path.join(VIRTUAL_ENV_BASE, r'.\Lib\site-packages\osgeo\data\proj') + ';' + os.environ['PATH']
+if os.name == 'nt':  # venv GDAL설정
+    VIRTUAL_ENV_BASE = os.environ['VIRTUAL_ENV']
+    os.environ['PATH'] = os.path.join(VIRTUAL_ENV_BASE, r'.\Lib\site-packages\osgeo') + ';' + os.environ['PATH']
+    os.environ['PROJ_LIB'] = os.path.join(VIRTUAL_ENV_BASE, r'.\Lib\site-packages\osgeo\data\proj') + ';' + os.environ[
+        'PATH']
 
 ROOT_DIR = os.path.dirname(BASE_DIR)
 # os.path.join(BASE_DIR, 'secrets.json') = BASE_DIR과 db정보가 담긴 파일을 경로로 함꼐 지정
@@ -30,7 +32,7 @@ for key, value in secrets.items():
     setattr(sys.modules[__name__], key, value)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-#BASE_DIR = Path(__file__).resolve().parent.parent
+# BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
@@ -43,7 +45,6 @@ SECRET_KEY = 'django-insecure-b95rny)9ohsz+mfl)3@*$rjzz=l(*gc44+^z#(b$m2=t*66y@5
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -68,9 +69,10 @@ INSTALLED_APPS = [
     'events',
     'review',
     'menu',
+    'storages',
 ]
 
-AUTH_USER_MODEL = 'accounts.User' # 커스텀 유저를 장고에서 사용하기 위함
+AUTH_USER_MODEL = 'accounts.User'  # 커스텀 유저를 장고에서 사용하기 위함
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
@@ -88,6 +90,7 @@ REST_FRAMEWORK = {
 REST_USE_JWT = True
 
 from datetime import timedelta
+
 # SIMPLE_JWT 설정
 SIMPLE_JWT = {
     'SIGNING_KEY': secrets["SECRET_KEY"],
@@ -129,7 +132,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'localmap.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 """
@@ -146,13 +148,12 @@ DATABASES = {
 }
 """
 
-EMAIL_HOST = 'smtp.gmail.com' 		 # 메일 호스트 서버
-EMAIL_PORT = '587' 			 # 서버 포트
-EMAIL_HOST_USER = 'matjibmap@gmail.com' 	 # 우리가 사용할 Gmail
-EMAIL_HOST_PASSWORD = 'chhjrhzaqhrrrjlp'		 # 우리가 사용할 Gmail pw
-EMAIL_USE_TLS = True			 # TLS 보안 설정
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER	 # 응답 메일 관련 설정
-
+EMAIL_HOST = 'smtp.gmail.com'  # 메일 호스트 서버
+EMAIL_PORT = '587'  # 서버 포트
+EMAIL_HOST_USER = 'matjibmap@gmail.com'  # 우리가 사용할 Gmail
+EMAIL_HOST_PASSWORD = 'chhjrhzaqhrrrjlp'  # 우리가 사용할 Gmail pw
+EMAIL_USE_TLS = True  # TLS 보안 설정
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # 응답 메일 관련 설정
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -172,7 +173,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
@@ -186,7 +186,6 @@ USE_L10N = True
 
 USE_TZ = False
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
@@ -197,8 +196,8 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-#swagger page의 authorize 설정
-#header부분에 Bearer 토큰 형식으로 추가해서 인증
+# swagger page의 authorize 설정
+# header부분에 Bearer 토큰 형식으로 추가해서 인증
 SWAGGER_SETTINGS = {
     'SECURITY_DEFINITIONS': {
         'Bearer': {
@@ -231,4 +230,16 @@ CORS_ALLOW_HEADERS = (
     "Access-Control-Allow-Origin",
 )
 CORS_ALLOW_CREDENTIALS = True
-#GDAL_LIBRARY_PATH = 'C:/Users/88mic/Desktop/maps/venv/Lib/site-packages/GDAL-3.4.3.dist-info'
+
+#aws 설정
+
+AWS_ACCESS_KEY_ID = 'AKIATQLW6UN72MQCLJUY'
+AWS_SECRET_ACCESS_KEY = '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'
+AWS_STORAGE_BUCKET_NAME = 'localmap'
+AWS_S3_REGION_NAME = 'ap-northeast-2'
+
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = 'public-read'
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# GDAL_LIBRARY_PATH = 'C:/Users/88mic/Desktop/maps/venv/Lib/site-packages/GDAL-3.4.3.dist-info'

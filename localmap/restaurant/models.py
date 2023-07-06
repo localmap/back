@@ -17,6 +17,7 @@ class Restaurant(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='user', to_field='email',default='admin@admin.com')
     name = models.CharField()
+    address = models.CharField(null=True)
     view = models.IntegerField(null=True, default=0)
     contents = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True) # 생성시 자동으로 시간저장
