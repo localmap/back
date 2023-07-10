@@ -7,7 +7,6 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from registration.serializers import RegSerializer, ReglistSerializer
 from .models import Registration
-
 from drf_yasg.utils import swagger_auto_schema
 
 @swagger_auto_schema(
@@ -26,6 +25,11 @@ def reg_create(request):
     if serializer.is_valid(raise_exception=True):
         # 인증객체를 통해 인증을 진행하고 사용자 정보를 request.user 객체에 저장
         # 인증정보가 없거나 일치하지않으면 AnonymousUser를 저장
+        name = serializer.validated_data.get('name')
+        address = serializer.validated_data.get('address')
+        if Registration.objects.filter(name=name, address=address).exists():
+            return Response({'message': '이미 등록된 식당입니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer.save(user=request.user)
         return Response(status=status.HTTP_201_CREATED)
 
