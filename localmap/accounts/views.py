@@ -53,18 +53,18 @@ def signup(request):
     password = request.data.get('password')
     name = request.data.get('name')
 
-    serializer = UserSerializer(data=request.data)
+    try:
+        validate_email(email) # 이메일 주소를 유효성 검사
 
-    if serializer.is_valid(raise_exception=True):
-        user = serializer.save(email=email, name=name)  # 필드 값 바로 저장
+        serializer = UserSerializer(data=request.data)
 
-        user.set_password(password)
-        user.save()
+        if serializer.is_valid(raise_exception=True):
+            user = serializer.save(email=email, name=name)  # 필드 값 바로 저장
 
-        # Email activation
-        try:
-            validate_email(email) # 이메일 주소를 유효성 검사
+            user.set_password(password)
+            user.save()
 
+            # Email activation
             current_site = get_current_site(request) #현재 사이트를 가져옴
             domain = current_site.domain #현재 사이트의 도메인을 추출
             uidb64 = urlsafe_base64_encode(force_bytes(user.pk)) #사용자의 기본 키를 base64로 인코딩
@@ -78,11 +78,10 @@ def signup(request):
 
             return Response({'message': 'SUCCESS'}, status=status.HTTP_201_CREATED)
 
-        except ValidationError:
-            return Response({'message': '유효한 이메일 주소를 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
+    except ValidationError:
+        return Response({'message': '유효한 이메일 주소를 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 @swagger_auto_schema(method='post', request_body=UserInfoSerializer, tags=['User'],)
 @api_view(['POST'])
