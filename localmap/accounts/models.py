@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser
 from django.contrib.auth.hashers import make_password, check_password
-
+from hjd.models import Hjd
 #헬퍼 class
 class UserManager(BaseUserManager):
     def create_user(self, email, name, password=None):
@@ -35,6 +35,8 @@ class User(AbstractBaseUser):
     name = models.CharField(max_length=30, unique=True,)
     is_active = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
+
+    location = models.ForeignKey(Hjd, on_delete=models.PROTECT, null=True, db_column='location', to_field='adm_nm')
 
     objects = UserManager()
 

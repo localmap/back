@@ -41,7 +41,7 @@ def rest_create(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
 def rest_list(request):
-    rest_list = Restaurant.objects.all() #쿼리부분
+    rest_list = Restaurant.objects.all().select_related("user","category_name") #쿼리부분
     serializer = RestSerializer(rest_list, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
