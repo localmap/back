@@ -80,7 +80,7 @@ def review_create(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
 def review_rest(request, rest_id):
-    list_rest = Review.objects.filter(rest_id=rest_id)
+    list_rest = Review.objects.filter(rest_id=rest_id).select_related("user")
     serializer = ReviewSerializer(list_rest, many=True)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
@@ -96,10 +96,25 @@ def review_rest(request, rest_id):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def review_user(request, user):
-    users = Review.objects.filter(user=user)
+    users = Review.objects.filter(user=user).select_related("user")
     serializer = ReviewSerializer(users, many=True)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+# @swagger_auto_schema(
+#     method='get',
+#     operation_id='리뷰 조회',
+#     operation_description='user별 리뷰 조회',
+#     tags=['Review'],
+#     responses={200: ReviewSerializer}
+# )
+# @api_view(['GET'])
+# @permission_classes([AllowAny])
+# def review_user(request, user):
+#     users = Review.objects.filter(user=user)
+#     serializer = ReviewSerializer(users, many=True)
+#
+#     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @swagger_auto_schema(
