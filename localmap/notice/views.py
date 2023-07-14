@@ -1,18 +1,13 @@
 from django.shortcuts import get_object_or_404
-
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
 from notice.serializers import NoticeSerializer
 from .models import Notice
 
 from drf_yasg.utils import swagger_auto_schema
-
-
-
 
 @swagger_auto_schema(
     method='post',
@@ -70,7 +65,8 @@ def notice_detail(request, pk):
     operation_id='공지사항 수정',
     operation_description='공지사항을 수정합니다',
     tags=['Notice'],
-    responses={200: NoticeSerializer}
+    responses={200: NoticeSerializer},
+    request_body=NoticeSerializer
 )
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated, IsAdminUser])  # 어드민 유저만 공지사항 수정 가능

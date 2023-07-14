@@ -4,11 +4,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
 from events.serializers import EventSerializer
-
 from .models import Events
-from restaurant.models import Restaurant
 
 from drf_yasg.utils import swagger_auto_schema
 

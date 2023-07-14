@@ -1,4 +1,3 @@
-from django.contrib.auth.models import User
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
@@ -33,7 +32,7 @@ class UserPwresetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
-        fields = ('email',)
+        fields = ('email','name')
 
 class UserPwchangeSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
