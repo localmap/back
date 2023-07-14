@@ -4,9 +4,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
 from registration.serializers import RegSerializer, ReglistSerializer
 from .models import Registration
+
 from drf_yasg.utils import swagger_auto_schema
 
 @swagger_auto_schema(
@@ -43,7 +43,7 @@ def reg_create(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
 def reg_list(request):
-    reg_list = Registration.objects.all() #쿼리부분
+    reg_list = Registration.objects.all().select_related('category_name') #쿼리부분
     serializer = ReglistSerializer(reg_list, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -66,14 +66,15 @@ def reg_detail(request, pk):
     operation_id='식당등록 신청 수정',
     operation_description='식당등록 신청을 수정합니다.',
     tags=['Registration'],
-    responses={200: ReglistSerializer}
+    responses={200: RegSerializer},
+    request_body=RegSerializer
 )
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 @authentication_classes([JWTAuthentication])  # JWT 토큰 확인
 def reg_update(request, pk):
     reg = get_object_or_404(Registration, pk=pk)
-    serializer = ReglistSerializer(instance=reg, data=request.data)
+    serializer = RegSerializer(instance=reg, data=request.data)
 
     if serializer.is_valid(raise_exception=True):
         registration = Registration.objects.get(regist_id=reg.regist_id)

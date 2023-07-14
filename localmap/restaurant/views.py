@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
 from restaurant.serializers import RestSerializer, RestSearchQuerySerializer, RestaurantSerializer
 from .models import Restaurant
 from review.models import Review
@@ -65,7 +64,8 @@ def rest_detail(request, pk):
     operation_id='식당 수정',
     operation_description='식당을 수정합니다',
     tags=['Restaurant'],
-    responses={200: RestSerializer}
+    responses={200: RestSerializer},
+    request_body=RestSerializer
 )
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated, IsAdminUser])  # 어드민 유저만 공지사항 수정 가능

@@ -22,6 +22,7 @@ from accounts.models import User
 from hjd.models import Hjd
 import string
 import random
+from django.db import transaction
 
 
 @swagger_auto_schema(
@@ -51,6 +52,7 @@ import random
 )
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@transaction.atomic()
 def signup(request):
     email = request.data.get('email')
     password = request.data.get('password')
@@ -124,6 +126,7 @@ def login(request):
 @swagger_auto_schema(method='delete', tags=['User'], )
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
+
 def delete(request):
     user = request.user
     user.delete()
@@ -175,10 +178,10 @@ def pw_change(request):  # 비밀번호 재설정
 @permission_classes([AllowAny])
 def pw_reset(request):  # 임시 비밀번호 전송
     email = request.data.get('email')
+    name = request.data.get('name')
     try:
         validate_email(email)  # 이메일 주소를 유효성 검사
-
-        user = User.objects.filter(email=email).first()
+        user = User.objects.filter(email=email, name=name).first()
 
         if user is None:
             return Response({'message': '등록되지 않은 이메일입니다.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -190,7 +193,6 @@ def pw_reset(request):  # 임시 비밀번호 전송
 
         # 난수를 해당 이메일의 사용자에게 할당
         user.set_new_password(random_pw)
-        user.save()
 
         message_data = pw_reset_message(random_pw)
 

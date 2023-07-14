@@ -68,7 +68,8 @@ def editor_detail(request, pk):
     operation_id='컬럼 수정',
     operation_description='컬럼을 수정합니다',
     tags=['Editor'],
-    responses={200: EditorSerializer}
+    responses={200: EditorSerializer},
+    request_body=EditorSerializer
 )
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated, IsAdminUser])  # 어드민 유저만 공지사항 수정 가능
