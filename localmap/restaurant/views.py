@@ -1,13 +1,12 @@
 from django.shortcuts import get_object_or_404
-from django.db.models import Q, Prefetch
+from django.db.models import Q, Avg
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from restaurant.serializers import RestSerializer, RestSearchQuerySerializer, RestaurantSerializer
+from restaurant.serializers import RestSerializer, RestSearchQuerySerializer, RestaurantSerializer, RestDetailSerializer
 from .models import Restaurant
-from review.models import Review
 
 from drf_yasg.utils import swagger_auto_schema
 
@@ -49,13 +48,13 @@ def rest_list(request):
     operation_id='식당 조회',
     operation_description='식당 1개 조회',
     tags=['Restaurant'],
-    responses={200: RestSerializer}
+    responses={200: RestDetailSerializer}
 )
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def rest_detail(request, pk):
-    rest = get_object_or_404(Restaurant, pk=pk)
-    serializer = RestSerializer(rest)
+    rest = get_object_or_404(Restaurant.objects.select_related('category_name').prefetch_related('rest_rev__user','rest_rev'), pk=pk)
+    serializer = RestDetailSerializer(rest)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -106,11 +105,19 @@ def rest_delete(request, pk):
 @permission_classes([AllowAny])
 def rest_search(request):
     search_keyword = request.GET.get('search', '')
+
     if search_keyword:
-        rest_list = Restaurant.objects.filter(Q(name__icontains=search_keyword) | Q(address__icontains=search_keyword)).prefetch_related(
-                Prefetch('review_set', queryset=Review.objects.order_by('-created_at')))
+        rest_list = Restaurant.objects.filter(
+            Q(name__icontains=search_keyword) | Q(address__icontains=search_keyword)
+        ).select_related('area_id', 'category_name', 'user').annotate(
+            avg_rating=Avg('rest_rev__rating')).prefetch_related(
+            'rest_rev'
+        )
     else:
-        rest_list = Restaurant.objects.all().prefetch_related(
-                Prefetch('review_set', queryset=Review.objects.order_by('-created_at')))
+        rest_list = Restaurant.objects.all().select_related('area_id', 'category_name', 'user').annotate(
+            avg_rating=Avg('rest_rev__rating')).prefetch_related(
+            'rest_rev'
+        )
+
     serializer = RestaurantSerializer(rest_list, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)

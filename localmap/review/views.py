@@ -11,11 +11,8 @@ from drf_yasg.utils import swagger_auto_schema
 from django.http import JsonResponse
 from rest_framework.parsers import MultiPartParser
 from drf_yasg import openapi
-import boto3, uuid, os, mimetypes
-
-s3 = boto3.client('s3', region_name='ap-northeast-2',
-                  aws_access_key_id='AKIATQLW6UN72MQCLJUY',
-                  aws_secret_access_key='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')
+import uuid, os
+from aws_module import upload_to_s3
 
 
 # swagger 데코레이터 설정
@@ -49,19 +46,10 @@ def review_create(request):
 
     if request_images:
         for image in request_images:
-            file_name = str(uuid.uuid4()) + os.path.splitext(image.name)[1]  # 파일명에 확장자 추가
-            object_key = f'images/{file_name}'
+            file_name = str(uuid.uuid4()) + os.path.splitext(image.name)[1]
 
-            # 이미지 파일의 MIME 유형 찾기
-            content_type, _ = mimetypes.guess_type(file_name)
-
-            # S3에 이미지 업로드
-            s3.upload_fileobj(image, 'localmap', object_key,
-                              ExtraArgs={'ACL': 'public-read', 'ContentDisposition': 'inline',
-                                         'ContentType': content_type})
-
-            # 사진 URL 생성
-            url = f"https://localmap.s3.ap-northeast-2.amazonaws.com/{object_key}"
+            # `upload_to_s3()` 함수 호출
+            url = upload_to_s3(image, file_name)
 
             # 사진 URL 저장
             photo = Photos(review=review, url=url)
@@ -159,6 +147,3 @@ def get_avg_rating_rest(request, rest_id):
 def get_avg_rating_user(request, user):
     avg_rating = Review.objects.filter(user=user).aggregate(Avg('rating'))['rating__avg']
     return JsonResponse({"average_rating": avg_rating})
-
-
-

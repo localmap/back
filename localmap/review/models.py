@@ -5,7 +5,7 @@ import uuid
 
 class Review(models.Model):
     review_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    rest_id = models.ForeignKey(Restaurant, on_delete=models.CASCADE, db_column='rest_id')
+    rest_id = models.ForeignKey(Restaurant, on_delete=models.CASCADE, db_column='rest_id', related_name='rest_rev')
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='user', to_field='email',
         default='admin@admin.com')

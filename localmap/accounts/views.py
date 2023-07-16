@@ -167,7 +167,6 @@ def pw_change(request):  # 비밀번호 재설정
             return Response({"message": "새로운 비밀번호가 맞지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
         request.user.set_password(new_pw)
-        request.user.save()
         return Response({"message": "비밀번호가 성공적으로 재설정되었습니다."}, status=status.HTTP_200_OK)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

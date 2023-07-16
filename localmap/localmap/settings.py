@@ -2,6 +2,7 @@ from pathlib import Path
 import json
 import sys
 import os
+from aws_module import AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_STORAGE_BUCKET_NAME,AWS_S3_REGION_NAME,DEFAULT_FILE_STORAGE
 
 # Path(__file__).resolve() = 현재파일의 절대경로
 # .parent.parent = 상위폴더의 상위폴더 localmap(소스폴더)
@@ -221,14 +222,14 @@ CORS_ALLOW_CREDENTIALS = True
 
 #aws 설정
 
-AWS_ACCESS_KEY_ID = 'AKIATQLW6UN72MQCLJUY'
-AWS_SECRET_ACCESS_KEY = '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'
-AWS_STORAGE_BUCKET_NAME = 'localmap'
-AWS_S3_REGION_NAME = 'ap-northeast-2'
+AWS_ACCESS_KEY_ID = AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY = AWS_SECRET_ACCESS_KEY
+AWS_STORAGE_BUCKET_NAME = AWS_STORAGE_BUCKET_NAME
+AWS_S3_REGION_NAME = AWS_S3_REGION_NAME
 
 AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = 'public-read'
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+DEFAULT_FILE_STORAGE = DEFAULT_FILE_STORAGE
 
 
 #SQL디버깅 추후 삭제

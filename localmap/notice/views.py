@@ -39,7 +39,7 @@ def notice_create(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
 def notice_list(request):
-    notice_list = Notice.objects.all() #쿼리부분
+    notice_list = Notice.objects.all().select_related('user') #쿼리부분
     serializer = NoticeSerializer(notice_list, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -54,7 +54,7 @@ def notice_list(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
 def notice_detail(request, pk):
-    notice = get_object_or_404(Notice, pk=pk)
+    notice = get_object_or_404(Notice.objects.select_related('user'), pk=pk)
     serializer = NoticeSerializer(notice)
 
     return Response(serializer.data, status=status.HTTP_200_OK)

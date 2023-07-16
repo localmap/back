@@ -84,3 +84,6 @@ venv/
 *.pyc
 
 localmap/**/__pycache__/
+
+secrets.json
+aws_module.py
