@@ -44,7 +44,7 @@ def editor_create(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
 def editor_list(request):
-    rest_list = Editor.objects.all() #쿼리부분
+    rest_list = Editor.objects.all().select_related('user').prefetch_related('rest_id') #쿼리부분
     serializer = EditorSerializer(rest_list, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
