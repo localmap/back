@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from restaurant.serializers import RestSerializer, RestSearchQuerySerializer, RestaurantSerializer, RestDetailSerializer
 from .models import Restaurant
+from django.db import connection
 
 from drf_yasg.utils import swagger_auto_schema
 
@@ -106,18 +107,43 @@ def rest_delete(request, pk):
 def rest_search(request):
     search_keyword = request.GET.get('search', '')
 
-    if search_keyword:
-        rest_list = Restaurant.objects.filter(
-            Q(name__icontains=search_keyword) | Q(address__icontains=search_keyword)
-        ).select_related('area_id', 'category_name', 'user').annotate(
-            avg_rating=Avg('rest_rev__rating')).prefetch_related(
-            'rest_rev'
-        )
-    else:
-        rest_list = Restaurant.objects.all().select_related('area_id', 'category_name', 'user').annotate(
-            avg_rating=Avg('rest_rev__rating')).prefetch_related(
-            'rest_rev'
-        )
+    # Raw SQL query
+    query = """
+        SELECT
+            "restaurant"."rest_id",
+            "restaurant"."address",
+            AVG("review"."rating") AS "avg_rating",
+            "restaurant"."name",
+            "photos"."url"
+        FROM
+            "restaurant"
+        LEFT OUTER JOIN
+            "review" ON ("restaurant"."rest_id" = "review"."rest_id")
+        LEFT OUTER JOIN
+            "photos" ON ("review"."review_id" = "photos"."review_id")
+        WHERE
+            UPPER("restaurant"."name") LIKE UPPER(%s)
+            OR UPPER("restaurant"."address") LIKE UPPER(%s)
+        GROUP BY
+            "restaurant"."rest_id",
+            "photos"."url"
+    """
 
-    serializer = RestaurantSerializer(rest_list, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    # Execute the raw SQL query with parameters
+    with connection.cursor() as cursor:
+        cursor.execute(query, ['%' + search_keyword + '%', '%' + search_keyword + '%'])
+        result = cursor.fetchall()
+
+    # Create a list of dictionaries from the raw query result
+    rest_list = []
+    for row in result:
+        rest_dict = {
+            'rest_id': row[0],
+            'address': row[1],
+            'avg_rating': row[2],
+            'name': row[3],
+            'url': row[4].replace('https://localmap.s3.amazonaws.com/https%3A/', '') if row[4] else None,
+        }
+        rest_list.append(rest_dict)
+
+    return Response(rest_list, status=status.HTTP_200_OK)

@@ -9,11 +9,18 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'email', 'password', 'name','location')
 
 class UserInfoSerializer(serializers.ModelSerializer):
+    email = serializers.SerializerMethodField()
+    password = serializers.SerializerMethodField()
+
+    def get_email(self, obj):
+        return obj.email
+
+    def get_password(self, obj):
+        return obj.password
 
     class Meta:
         model = get_user_model()
         fields = ('email','password')
-
 class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
