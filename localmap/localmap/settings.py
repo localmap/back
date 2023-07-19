@@ -3,6 +3,7 @@ import json
 import sys
 import os
 from aws_module import AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_STORAGE_BUCKET_NAME,AWS_S3_REGION_NAME,DEFAULT_FILE_STORAGE
+from email_module import EMAIL_PORT, DEFAULT_FROM_EMAIL, EMAIL_HOST, EMAIL_HOST_PASSWORD, EMAIL_HOST_USER, EMAIL_USE_TLS
 
 # Path(__file__).resolve() = 현재파일의 절대경로
 # .parent.parent = 상위폴더의 상위폴더 localmap(소스폴더)
@@ -136,12 +137,12 @@ DATABASES = {
 }
 """
 
-EMAIL_HOST = 'smtp.gmail.com'  # 메일 호스트 서버
-EMAIL_PORT = '587'  # 서버 포트
-EMAIL_HOST_USER = 'matjibmap@gmail.com'  # 우리가 사용할 Gmail
-EMAIL_HOST_PASSWORD = 'chhjrhzaqhrrrjlp'  # 우리가 사용할 Gmail pw
-EMAIL_USE_TLS = True  # TLS 보안 설정
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # 응답 메일 관련 설정
+EMAIL_HOST = EMAIL_HOST
+EMAIL_PORT = EMAIL_PORT
+EMAIL_HOST_USER = EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = EMAIL_HOST_PASSWORD
+EMAIL_USE_TLS = EMAIL_USE_TLS
+DEFAULT_FROM_EMAIL = DEFAULT_FROM_EMAIL
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

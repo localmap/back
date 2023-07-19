@@ -87,3 +87,4 @@ localmap/**/__pycache__/
 
 secrets.json
 aws_module.py
+email_module.py
