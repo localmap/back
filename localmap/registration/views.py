@@ -57,7 +57,7 @@ def reg_list(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def reg_detail(request, pk):
-    reg = get_object_or_404(Registration, pk=pk)
+    reg = get_object_or_404(Registration.objects.select_related('category_name'), pk=pk)
     serializer = ReglistSerializer(reg)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
