@@ -7,6 +7,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from restaurant.models import Restaurant
 from editor.serializers import EditorSerializer, EditorSerializer_create, EditorDetailSerializer
 from .models import Editor
+from django.db import connection
+from django.http import JsonResponse
 
 from drf_yasg.utils import swagger_auto_schema
 
@@ -107,7 +109,54 @@ def editor_delete(request, pk):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def editor_details(request, pk):
+
+    query = """
+        SELECT
+            "editor"."ed_no",
+            "editor"."title",
+            "editor"."content",
+            "restaurant"."rest_id",
+            "restaurant"."category_name",
+            "restaurant"."name",
+            "restaurant"."contents"
+        FROM
+            "editor"
+        LEFT OUTER JOIN
+            "editor_rest_id" ON ("editor"."ed_no" = "editor_rest_id"."editor_id")
+        LEFT OUTER JOIN
+            "restaurant" ON ("editor_rest_id"."restaurant_id" = "restaurant"."rest_id")
+        WHERE
+            "editor"."ed_no" = %s
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(query, [pk])
+        result = cursor.fetchall()
+
+    editor_dict = {}
+    restaurants_list = []
+    for row in result:
+        if not editor_dict:
+            editor_dict = {
+                'ed_no': row[0],
+                'title': row[1],
+                'content': row[2],
+            }
+        if row[4]:
+            restaurant_dict = {
+                'rest_id': row[3],
+                'category_name': row[4],
+                'name': row[5],
+                'contents': row[6],
+            }
+            restaurants_list.append(restaurant_dict)
+    editor_dict['rest_id'] = restaurants_list
+    return JsonResponse(editor_dict, status=200)
+
+"""
+def editor_details(request, pk):
     editor = get_object_or_404(Editor, pk=pk)
     serializer = EditorDetailSerializer(editor)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
+"""

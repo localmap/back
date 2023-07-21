@@ -107,7 +107,6 @@ def rest_delete(request, pk):
 def rest_search(request):
     search_keyword = request.GET.get('search', '')
 
-    # Raw SQL query
     query = """
         SELECT
             "restaurant"."rest_id",
@@ -129,7 +128,6 @@ def rest_search(request):
             "photos"."url"
     """
 
-    # Execute the raw SQL query with parameters
     with connection.cursor() as cursor:
         cursor.execute(query, ['%' + search_keyword + '%', '%' + search_keyword + '%'])
         result = cursor.fetchall()
@@ -147,3 +145,23 @@ def rest_search(request):
         rest_list.append(rest_dict)
 
     return Response(rest_list, status=status.HTTP_200_OK)
+
+"""
+def rest_search(request):
+    search_keyword = request.GET.get('search', '')
+
+    if search_keyword:
+        rest_list = Restaurant.objects.filter(
+            Q(name__icontains=search_keyword) | Q(address__icontains=search_keyword)
+        ).select_related('area_id', 'category_name', 'user').annotate(
+            avg_rating=Avg('rest_rev__rating')).prefetch_related(
+            'rest_rev'
+        )
+    else:
+        rest_list = Restaurant.objects.all().select_related('area_id', 'category_name', 'user').annotate(
+            avg_rating=Avg('rest_rev__rating')).prefetch_related(
+            'rest_rev'
+        )
+    serializer = RestaurantSerializer(rest_list, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+"""
