@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from django.db.models import Q, Avg
+from django.db.models import F, FloatField
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
@@ -8,6 +8,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from restaurant.serializers import RestSerializer, RestSearchQuerySerializer, RestaurantSerializer, RestDetailSerializer
 from .models import Restaurant
 from django.db import connection
+from drf_yasg import openapi
 
 from drf_yasg.utils import swagger_auto_schema
 
@@ -45,18 +46,26 @@ def rest_list(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(
-    method='get',
+    method='post',
     operation_id='식당 조회',
     operation_description='식당 1개 조회',
     tags=['Restaurant'],
     responses={200: RestDetailSerializer}
 )
-@api_view(['GET'])
+@api_view(['POST'])
 @permission_classes([AllowAny])
 def rest_detail(request, pk):
-    rest = get_object_or_404(Restaurant.objects.select_related('category_name').prefetch_related('rest_rev__user','rest_rev'), pk=pk)
-    serializer = RestDetailSerializer(rest)
+    # 예외 처리를 위해 존재하는지 확인하고 객체를 가져옴
+    rest = get_object_or_404(
+        Restaurant.objects.select_related("category_name").prefetch_related("rest_rev__user", "rest_rev"),
+        pk=pk,
+    )
 
+    # 조회수 증가 (view 필드를 F() 표현식으로 업데이트)
+    Restaurant.objects.filter(pk=pk).update(view=F("view") + 1)
+
+    # 시리얼라이즈 후 반환
+    serializer = RestDetailSerializer(rest)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(
@@ -165,3 +174,50 @@ def rest_search(request):
     serializer = RestaurantSerializer(rest_list, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 """
+from django.db.models.expressions import RawSQL
+def haversine(lat1, lon1):
+    return RawSQL(
+        "6371 * acos(cos(radians(%s)) * cos(radians(latitude)) * cos(radians(longitude) - radians(%s)) + sin(radians(%s)) * sin(radians(latitude)))",
+        (lat1, lon1, lat1),
+        output_field=FloatField()
+    )
+@swagger_auto_schema(
+    method='get',
+    operation_id='근처 식당',
+    operation_description='GPS를 기반으로 근처 식당 정보를 가져옵니다.',
+    tags=['Restaurant'],
+    manual_parameters=[
+        openapi.Parameter(
+            name='latitude',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='위도'
+        ),
+        openapi.Parameter(
+            name='longitude',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='경도'
+        )
+    ],
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def rest_loc(request):
+    try:
+        lat = request.GET.get('latitude', None)
+        lon = request.GET.get('longitude', None)
+
+        if lat is None or lon is None:
+            return Response({"error": "latitude and longitude are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        lat = float(lat)
+        lon = float(lon)
+
+        queryset = Restaurant.objects.annotate(distance=haversine(lat, lon)).order_by('distance').select_related('user','category_name')
+
+        serializer = RestSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    except ValueError:
+        return Response({"error": "Invalid latitude or longitude"}, status=status.HTTP_400_BAD_REQUEST)
