@@ -8,5 +8,5 @@ urlpatterns = [
     path('update/<uuid:pk>', views.rest_update, name='rest_update'),
     path('delete/<uuid:pk>', views.rest_delete, name='rest_delete'),
     path('search/', views.rest_search, name='rest_search'),
+    path('rest_loc/', views.rest_loc, name='rest_loc'),
 ]
-
