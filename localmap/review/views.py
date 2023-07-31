@@ -1,5 +1,5 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import status, exceptions
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -12,8 +12,10 @@ from django.http import JsonResponse
 from rest_framework.parsers import MultiPartParser
 from drf_yasg import openapi
 import uuid, os
-from aws_module import upload_to_s3
+from aws_module import upload_to_s3, delete_from_s3, AWS_STORAGE_BUCKET_NAME
+from django.db import transaction
 
+from django.conf import settings
 
 # swagger 데코레이터 설정
 file_param = openapi.Parameter('photos', openapi.IN_FORM, description="Select at least one photo file (jpeg/png)",
@@ -33,29 +35,42 @@ file_param = openapi.Parameter('photos', openapi.IN_FORM, description="Select at
 @permission_classes([IsAuthenticated])
 @authentication_classes([JWTAuthentication])  # JWT 토큰 확인
 @parser_classes([MultiPartParser])
+@transaction.atomic()
 def review_create(request):
-    #import data
+    # import data
     request_data = request.data.dict()
-    #import image files
+    # import image files
     request_images = request.FILES.getlist('photos')
 
     review_serializer = ReviewCreateSerializer(data=request_data)
 
-    if review_serializer.is_valid(raise_exception=True):
-        review = review_serializer.save(user=request.user)
+    uploaded_file_names = []
 
-    if request_images:
-        for image in request_images:
-            file_name = str(uuid.uuid4()) + os.path.splitext(image.name)[1]
+    try:
+        if review_serializer.is_valid(raise_exception=True):
+            review = review_serializer.save(user=request.user)
 
-            # `upload_to_s3()` 함수 호출
-            url = upload_to_s3(image, file_name)
+        if request_images:
+            for image in request_images:
+                file_name = str(uuid.uuid4()) + os.path.splitext(image.name)[1]
+                uploaded_file_names.append(file_name)
 
-            # 사진 URL 저장
-            photo = Photos(review=review, url=url)
-            photo.save()
+                # `upload_to_s3()` 함수 호출
+                url = upload_to_s3(image, file_name)
 
-    return Response(status=status.HTTP_201_CREATED)
+                # 사진 URL 저장
+                photo = Photos(review=review, url=url, user=request.user)
+                photo.save()
+
+        return Response(status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        # 이미 업로드된 파일을 S3에서 삭제합니다.
+        if request_images:
+            for uploaded_file_name in uploaded_file_names:
+                delete_from_s3(settings.AWS_STORAGE_BUCKET_NAME, uploaded_file_name)
+        # 예외 처리를 아래에 추가합니다.
+        raise exceptions.APIException(str(e))
 
 
 @swagger_auto_schema(
@@ -88,6 +103,7 @@ def review_user(request, user):
     serializer = ReviewSerializer(users, many=True)
 
     return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 # @swagger_auto_schema(
 #     method='get',
@@ -147,3 +163,24 @@ def get_avg_rating_rest(request, rest_id):
 def get_avg_rating_user(request, user):
     avg_rating = Review.objects.filter(user=user).aggregate(Avg('rating'))['rating__avg']
     return JsonResponse({"average_rating": avg_rating})
+
+
+@swagger_auto_schema(
+    method='post',
+    operation_id='s3 사진 삭제',
+    operation_description='s3 사진을 삭제합니다',
+    tags=['Review'],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'image_name': openapi.Schema(type=openapi.TYPE_STRING, description="이미지 키값"),
+        }
+    ),
+)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def s3_image_delete(request):
+    image_name = request.data.get('image_name')
+    delete_from_s3(settings.AWS_STORAGE_BUCKET_NAME, image_name)
+    return Response(status=status.HTTP_200_OK)
+

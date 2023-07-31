@@ -21,7 +21,7 @@ class Review(models.Model):
 class Photos(models.Model):
     file_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     review = models.ForeignKey(Review, related_name='photos', on_delete=models.CASCADE,default=1)
-    email = models.ForeignKey(
+    user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='user', to_field='name')
     created_at = models.DateTimeField(auto_now_add=True)
     url = models.ImageField()

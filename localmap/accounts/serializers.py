@@ -10,17 +10,18 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserInfoSerializer(serializers.ModelSerializer):
     email = serializers.SerializerMethodField()
-    password = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
 
     def get_email(self, obj):
         return obj.email
 
     def get_password(self, obj):
-        return obj.password
+        return obj.name
 
     class Meta:
         model = get_user_model()
-        fields = ('email','password')
+        fields = ('email','name')
+
 class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -49,3 +50,9 @@ class UserPwchangeSerializer(serializers.Serializer):
     class Meta:
         model = get_user_model()
         fields = ('password','new_pw','pw_confirm')
+
+class UserLoginSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = get_user_model()
+        fields = ('email','password')
