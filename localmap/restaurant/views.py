@@ -1,17 +1,17 @@
 from django.shortcuts import get_object_or_404
-from django.db.models import F, FloatField
+from django.db.models import F
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from restaurant.serializers import RestSerializer, RestSearchQuerySerializer, RestaurantSerializer, RestDetailSerializer
+from restaurant.serializers import RestSerializer, RestDetailSerializer
 from .models import Restaurant
-from django.db import connection
+from django.db import connections
 from drf_yasg import openapi
-
 from drf_yasg.utils import swagger_auto_schema
-
+from math import sin, cos, radians, atan2, sqrt
+import time
 @swagger_auto_schema(
     method='post',
     operation_id='식당 등록',
@@ -103,90 +103,26 @@ def rest_delete(request, pk):
     rest.delete()
     return Response(status=status.HTTP_200_OK)
 
+
+#정상작동
 @swagger_auto_schema(
     method='get',
-    operation_id='식당 검색',
-    operation_description='검색어에 해당하는 식당을 조회합니다',
-    tags=['Restaurant'],
-    query_serializer=RestSearchQuerySerializer,  # 검색어 입력 칸 추가
-    responses={200: RestSerializer}
-)
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def rest_search(request):
-    search_keyword = request.GET.get('search', '')
-
-    query = """
-        SELECT
-            "restaurant"."rest_id",
-            "restaurant"."address",
-            AVG("review"."rating") AS "avg_rating",
-            "restaurant"."name",
-            "photos"."url"
-        FROM
-            "restaurant"
-        LEFT OUTER JOIN
-            "review" ON ("restaurant"."rest_id" = "review"."rest_id")
-        LEFT OUTER JOIN
-            "photos" ON ("review"."review_id" = "photos"."review_id")
-        WHERE
-            UPPER("restaurant"."name") LIKE UPPER(%s)
-            OR UPPER("restaurant"."address") LIKE UPPER(%s)
-        GROUP BY
-            "restaurant"."rest_id",
-            "photos"."url"
-    """
-
-    with connection.cursor() as cursor:
-        cursor.execute(query, ['%' + search_keyword + '%', '%' + search_keyword + '%'])
-        result = cursor.fetchall()
-
-    # Create a list of dictionaries from the raw query result
-    rest_list = []
-    for row in result:
-        rest_dict = {
-            'rest_id': row[0],
-            'address': row[1],
-            'avg_rating': row[2],
-            'name': row[3],
-            'url': row[4].replace('https://localmap.s3.amazonaws.com/https%3A/', '') if row[4] else None,
-        }
-        rest_list.append(rest_dict)
-
-    return Response(rest_list, status=status.HTTP_200_OK)
-
-"""
-def rest_search(request):
-    search_keyword = request.GET.get('search', '')
-
-    if search_keyword:
-        rest_list = Restaurant.objects.filter(
-            Q(name__icontains=search_keyword) | Q(address__icontains=search_keyword)
-        ).select_related('area_id', 'category_name', 'user').annotate(
-            avg_rating=Avg('rest_rev__rating')).prefetch_related(
-            'rest_rev'
-        )
-    else:
-        rest_list = Restaurant.objects.all().select_related('area_id', 'category_name', 'user').annotate(
-            avg_rating=Avg('rest_rev__rating')).prefetch_related(
-            'rest_rev'
-        )
-    serializer = RestaurantSerializer(rest_list, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
-"""
-from django.db.models.expressions import RawSQL
-def haversine(lat1, lon1):
-    return RawSQL(
-        "6371 * acos(cos(radians(%s)) * cos(radians(latitude)) * cos(radians(longitude) - radians(%s)) + sin(radians(%s)) * sin(radians(latitude)))",
-        (lat1, lon1, lat1),
-        output_field=FloatField()
-    )
-@swagger_auto_schema(
-    method='get',
-    operation_id='근처 식당',
-    operation_description='GPS를 기반으로 근처 식당 정보를 가져옵니다.',
+    operation_id='근처 이벤트 중인 식당',
+    operation_description='근처 5km 이내의 이벤트 중인 식당을 보여줍니다.',
     tags=['Restaurant'],
     manual_parameters=[
+        openapi.Parameter(
+            name='category',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            description='카테고리'
+        ),
+        openapi.Parameter(
+            name='sort_by',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            description='정렬방식'
+        ),
         openapi.Parameter(
             name='latitude',
             in_=openapi.IN_QUERY,
@@ -203,21 +139,280 @@ def haversine(lat1, lon1):
 )
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def rest_loc(request):
-    try:
-        lat = request.GET.get('latitude', None)
-        lon = request.GET.get('longitude', None)
+def get_event_rest(request):
+    category = request.GET.get('category', None)
+    sort_by = request.GET.get('sort_by', 'view')
+    latitude = request.GET.get('latitude', None)
+    longitude = request.GET.get('longitude', None)
 
-        if lat is None or lon is None:
-            return Response({"error": "latitude and longitude are required"}, status=status.HTTP_400_BAD_REQUEST)
+    # Category filtering
+    category_filter = f"AND r.category_name = '{category}'" if category else ""
 
-        lat = float(lat)
-        lon = float(lon)
+    # Dynamic sorting
+    if sort_by.lower() == "rating":
+        order_by = "average_rating DESC"
+    else:
+        order_by = "view DESC"
 
-        queryset = Restaurant.objects.annotate(distance=haversine(lat, lon)).order_by('distance').select_related('user','category_name')
+    nearby_filter = ""
+    if latitude and longitude:
+        # Distance calculation and filtering for nearby restaurants (within 5km)
+        earth_radius = 6371  # Radius of the Earth in km
+        nearby_distance = 5  # Distance in km
 
-        serializer = RestSerializer(queryset, many=True)
-        return Response(serializer.data)
+        query_latitude = float(latitude)
+        query_longitude = float(longitude)
+        a = f"sin(radians({query_latitude}-r.latitude)/2) * sin(radians({query_latitude}-r.latitude)/2) + cos(radians(r.latitude)) * cos(radians({query_latitude})) * sin(radians({query_longitude}-r.longitude)/2) * sin(radians({query_longitude}-r.longitude)/2)"
+        nearby_filter = f"AND ({earth_radius} * 2 * atan2(sqrt({a}), sqrt(1-{a}))) < {nearby_distance}"
 
-    except ValueError:
-        return Response({"error": "Invalid latitude or longitude"}, status=status.HTTP_400_BAD_REQUEST)
+    query = f"""
+    WITH ranked_review_photos AS (
+        SELECT rev.rest_id, pho.url, ROW_NUMBER() OVER (PARTITION BY rev.rest_id ORDER BY rev.created_at DESC) AS rn
+        FROM review rev
+        LEFT OUTER JOIN photos pho ON rev.review_id = pho.review_id
+        WHERE pho.url IS NOT NULL
+    )
+    SELECT r.category_name, r.rest_id, r.address, r.name, rrp.url AS most_recent_photo_url, ROUND(CAST(AVG(rev.rating) AS NUMERIC), 1) AS average_rating, r.view
+    FROM restaurant r
+    INNER JOIN events e ON r.rest_id = e.rest_id
+    LEFT OUTER JOIN review rev ON r.rest_id = rev.rest_id
+    LEFT OUTER JOIN ranked_review_photos rrp ON r.rest_id = rrp.rest_id AND rrp.rn = 1
+    WHERE 1=1
+    {category_filter}
+    {nearby_filter}
+    GROUP BY r.rest_id, r.address, r.name, rrp.url, r.view
+    ORDER BY {order_by};
+    """
+
+    with connections['default'].cursor() as cursor:
+        cursor.execute(query)
+        result = cursor.fetchall()
+
+    rest_list = []
+    for row in result:
+        rest_dict = {
+            'category_name': row[0],
+            'rest_id': row[1],
+            'address': row[2].upper(),
+            'name': row[3].upper(),
+            'most_recent_photo_url': row[4],
+            'average_rating': row[5],
+            'view': row[6],
+        }
+        rest_list.append(rest_dict)
+
+    return Response(rest_list, status=status.HTTP_200_OK)
+
+
+
+
+#작동확인
+@swagger_auto_schema(
+    method='get',
+    operation_id='근처 식당',
+    operation_description='근처 5km 이내의 식당을 보여줍니다.',
+    tags=['Restaurant'],
+    manual_parameters=[
+        openapi.Parameter(
+            name='category',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            description='카테고리'
+        ),
+        openapi.Parameter(
+            name='sort_by',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            description='정렬방식'
+        ),
+        openapi.Parameter(
+            name='latitude',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='위도'
+        ),
+        openapi.Parameter(
+            name='longitude',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='경도'
+        )
+    ],
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_near_rest(request):
+    category = request.GET.get('category', None)
+    sort_by = request.GET.get('sort_by', 'view')
+    latitude = request.GET.get('latitude', None)
+    longitude = request.GET.get('longitude', None)
+
+    # Category filtering
+    category_filter = f"AND r.category_name = '{category}'" if category else ""
+
+    # Dynamic sorting
+    if sort_by.lower() == "rating":
+        order_by = "average_rating DESC"
+    else:
+        order_by = "view DESC"
+
+    nearby_filter = ""
+    if latitude and longitude:
+        # Distance calculation and filtering for nearby restaurants (within 5km)
+        earth_radius = 6371  # Radius of the Earth in km
+        nearby_distance = 5  # Distance in km
+
+        query_latitude = float(latitude)
+        query_longitude = float(longitude)
+        a = f"sin(radians({query_latitude}-r.latitude)/2) * sin(radians({query_latitude}-r.latitude)/2) + cos(radians(r.latitude)) * cos(radians({query_latitude})) * sin(radians({query_longitude}-r.longitude)/2) * sin(radians({query_longitude}-r.longitude)/2)"
+        nearby_filter = f"AND ({earth_radius} * 2 * atan2(sqrt({a}), sqrt(1-{a}))) < {nearby_distance}"
+
+    query = f"""
+    WITH ranked_review_photos AS (
+        SELECT rev.rest_id, pho.url, ROW_NUMBER() OVER (PARTITION BY rev.rest_id ORDER BY rev.created_at DESC) AS rn
+        FROM review rev
+        LEFT OUTER JOIN photos pho ON rev.review_id = pho.review_id
+        WHERE pho.url IS NOT NULL
+    )
+    SELECT r.category_name, r.rest_id, r.address, r.name, rrp.url AS most_recent_photo_url, ROUND(CAST(AVG(rev.rating) AS NUMERIC), 1) AS average_rating, r.view
+    FROM restaurant r
+    LEFT OUTER JOIN review rev ON r.rest_id = rev.rest_id
+    LEFT OUTER JOIN ranked_review_photos rrp ON r.rest_id = rrp.rest_id AND rrp.rn = 1
+    WHERE 1=1
+    {category_filter}
+    {nearby_filter}
+    GROUP BY r.rest_id, r.address, r.name, rrp.url, r.view
+    ORDER BY {order_by};
+    """
+
+    with connections['default'].cursor() as cursor:
+        cursor.execute(query)
+        result = cursor.fetchall()
+
+    rest_list = []
+    for row in result:
+        rest_dict = {
+            'category_name': row[0],
+            'rest_id': row[1],
+            'address': row[2].upper(),
+            'name': row[3].upper(),
+            'most_recent_photo_url': row[4],
+            'average_rating': row[5],
+            'view': row[6],
+        }
+        rest_list.append(rest_dict)
+
+    return Response(rest_list, status=status.HTTP_200_OK)
+
+
+
+@swagger_auto_schema(
+    method='get',
+    operation_id='식당 검색',
+    operation_description='식당의 검색결과를 보여줍니다.',
+    tags=['Restaurant'],
+    manual_parameters=[
+        openapi.Parameter(
+            name='category',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            description='카테고리'
+        ),
+        openapi.Parameter(
+            name='sort_by',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            description='정렬방식'
+        ),
+        openapi.Parameter(
+            name='latitude',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='위도'
+        ),
+        openapi.Parameter(
+            name='longitude',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='경도'
+        ),
+        openapi.Parameter(
+            name='search',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            description='식당 이름 또는 주소 검색'
+        )
+    ],
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_search_rest(request):
+    category = request.GET.get('category', None)
+    sort_by = request.GET.get('sort_by', 'view')
+    latitude = request.GET.get('latitude', None)
+    longitude = request.GET.get('longitude', None)
+    search = request.GET.get('search', None)
+
+    # Category filtering
+    category_filter = f"AND r.category_name = '{category}'" if category else ""
+
+    # Dynamic sorting
+    if sort_by.lower() == "rating":
+        order_by = "average_rating DESC"
+    else:
+        order_by = "view DESC"
+
+    # Search filtering
+    search_filter = ""
+    if search:
+        search_filter = f"AND (LOWER(r.name) LIKE LOWER('%{search}%') OR LOWER(r.address) LIKE LOWER('%{search}%'))"
+
+    nearby_filter = ""
+    if latitude and longitude:
+        # Distance calculation and filtering for nearby restaurants (within 5km)
+        earth_radius = 6371  # Radius of the Earth in km
+        nearby_distance = 5  # Distance in km
+
+        query_latitude = float(latitude)
+        query_longitude = float(longitude)
+        a = f"sin(radians({query_latitude}-r.latitude)/2) * sin(radians({query_latitude}-r.latitude)/2) + cos(radians(r.latitude)) * cos(radians({query_latitude})) * sin(radians({query_longitude}-r.longitude)/2) * sin(radians({query_longitude}-r.longitude)/2)"
+        nearby_filter = f"AND ({earth_radius} * 2 * atan2(sqrt({a}), sqrt(1-{a}))) < {nearby_distance}"
+
+    query = f"""
+    WITH ranked_review_photos AS (
+        SELECT rev.rest_id, pho.url, ROW_NUMBER() OVER (PARTITION BY rev.rest_id ORDER BY rev.created_at DESC) AS rn
+        FROM review rev
+        LEFT OUTER JOIN photos pho ON rev.review_id = pho.review_id
+        WHERE pho.url IS NOT NULL
+    )
+    SELECT r.category_name, r.rest_id, r.address, r.name, rrp.url AS most_recent_photo_url, ROUND(CAST(AVG(rev.rating) AS NUMERIC), 1) AS average_rating, r.view
+    FROM restaurant r
+    LEFT OUTER JOIN review rev ON r.rest_id = rev.rest_id
+    LEFT OUTER JOIN ranked_review_photos rrp ON r.rest_id = rrp.rest_id AND rrp.rn = 1
+    WHERE 1=1
+    {category_filter}
+    {nearby_filter}
+    {search_filter}
+    GROUP BY r.rest_id, r.address, r.name, rrp.url, r.view
+    ORDER BY {order_by};
+    """
+
+    with connections['default'].cursor() as cursor:
+        cursor.execute(query)
+        result = cursor.fetchall()
+
+    rest_list = []
+    for row in result:
+        rest_dict = {
+            'category_name': row[0],
+            'rest_id': row[1],
+            'address': row[2].upper(),
+            'name': row[3].upper(),
+            'most_recent_photo_url': row[4],
+            'average_rating': row[5],
+            'view': row[6],
+        }
+        rest_list.append(rest_dict)
+
+    return Response(rest_list, status=status.HTTP_200_OK)
+
