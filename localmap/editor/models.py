@@ -10,11 +10,11 @@ class Editor(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         db_column='user',
-        to_field='email',
-        default='admin@admin.com',
+        to_field='name'
     )
     title = models.CharField(max_length=255, verbose_name="Title")
     content = models.TextField(verbose_name="Content")
+    view = models.IntegerField(null=True, default=0)
 
     class Meta:
         db_table = 'editor'

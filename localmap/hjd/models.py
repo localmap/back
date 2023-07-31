@@ -6,6 +6,9 @@ class Hjd(models.Model):
     sidonm = models.CharField()
     temp = models.CharField()
     sggnm = models.CharField()
+    latitude = models.FloatField(null=True)
+    longitude = models.FloatField(null=True)
+
 
     class Meta:
         db_table = 'hjd'

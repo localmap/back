@@ -4,7 +4,7 @@ from django.db import models
 
 class Notice(models.Model):
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='author')  # 작성자는 유저 !
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_column='user',to_field='name')  # 작성자는 유저 !
     title = models.CharField(max_length=50)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True) # 생성시 자동으로 시간저장
