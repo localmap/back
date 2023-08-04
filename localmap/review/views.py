@@ -45,6 +45,7 @@ def review_create(request):
     review_serializer = ReviewCreateSerializer(data=request_data)
 
     uploaded_file_names = []
+    uploaded_photos = []
 
     try:
         if review_serializer.is_valid(raise_exception=True):
@@ -55,12 +56,20 @@ def review_create(request):
                 file_name = str(uuid.uuid4()) + os.path.splitext(image.name)[1]
                 uploaded_file_names.append(file_name)
 
-                # `upload_to_s3()` 함수 호출
-                url = upload_to_s3(image, file_name)
-
                 # 사진 URL 저장
-                photo = Photos(review=review, url=url, user=request.user)
+                photo = Photos(review=review, url='', user=request.user)
                 photo.save()
+                uploaded_photos.append(photo)
+
+        for index, image in enumerate(request_images):
+            file_name = uploaded_file_names[index]
+
+            # `upload_to_s3()` 함수 호출
+            url = upload_to_s3(image, file_name)
+
+            # 업로드된 사진 URL 업데이트
+            uploaded_photos[index].url = url
+            uploaded_photos[index].save()
 
         return Response(status=status.HTTP_201_CREATED)
 
