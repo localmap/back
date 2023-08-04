@@ -15,7 +15,7 @@ class UserInfoSerializer(serializers.ModelSerializer):
     def get_email(self, obj):
         return obj.email
 
-    def get_password(self, obj):
+    def get_name(self, obj):
         return obj.name
 
     class Meta:

@@ -12,6 +12,7 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from math import sin, cos, radians, atan2, sqrt
 import time
+from rest_framework.pagination import LimitOffsetPagination
 @swagger_auto_schema(
     method='post',
     operation_id='식당 등록',
@@ -134,7 +135,19 @@ def rest_delete(request, pk):
             in_=openapi.IN_QUERY,
             type=openapi.TYPE_NUMBER,
             description='경도'
-        )
+        ),
+        openapi.Parameter(
+            name='limit',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='한 페이지에 표시될 게시물 갯수'
+        ),
+        openapi.Parameter(
+            name='offset',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='현재 페이지'
+        ),
     ],
 )
 @api_view(['GET'])
@@ -144,6 +157,7 @@ def get_event_rest(request):
     sort_by = request.GET.get('sort_by', 'view')
     latitude = request.GET.get('latitude', None)
     longitude = request.GET.get('longitude', None)
+
 
     # Category filtering
     category_filter = f"AND r.category_name = '{category}'" if category else ""
@@ -201,7 +215,10 @@ def get_event_rest(request):
         }
         rest_list.append(rest_dict)
 
-    return Response(rest_list, status=status.HTTP_200_OK)
+    #페이지네이션
+    paginator = LimitOffsetPagination()
+    limited_results = paginator.paginate_queryset(rest_list, request)
+    return paginator.get_paginated_response(limited_results)
 
 
 
@@ -236,7 +253,19 @@ def get_event_rest(request):
             in_=openapi.IN_QUERY,
             type=openapi.TYPE_NUMBER,
             description='경도'
-        )
+        ),
+        openapi.Parameter(
+            name='limit',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='한 페이지에 표시될 게시물 갯수'
+        ),
+        openapi.Parameter(
+            name='offset',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='현재 페이지'
+        ),
     ],
 )
 @api_view(['GET'])
@@ -302,7 +331,9 @@ def get_near_rest(request):
         }
         rest_list.append(rest_dict)
 
-    return Response(rest_list, status=status.HTTP_200_OK)
+    paginator = LimitOffsetPagination()
+    limited_results = paginator.paginate_queryset(rest_list, request)
+    return paginator.get_paginated_response(limited_results)
 
 
 
@@ -341,7 +372,19 @@ def get_near_rest(request):
             in_=openapi.IN_QUERY,
             type=openapi.TYPE_STRING,
             description='식당 이름 또는 주소 검색'
-        )
+        ),
+        openapi.Parameter(
+            name='limit',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='한 페이지에 표시될 게시물 갯수'
+        ),
+        openapi.Parameter(
+            name='offset',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='현재 페이지'
+        ),
     ],
 )
 @api_view(['GET'])
@@ -414,5 +457,7 @@ def get_search_rest(request):
         }
         rest_list.append(rest_dict)
 
-    return Response(rest_list, status=status.HTTP_200_OK)
+    paginator = LimitOffsetPagination()
+    limited_results = paginator.paginate_queryset(rest_list, request)
+    return paginator.get_paginated_response(limited_results)
 
