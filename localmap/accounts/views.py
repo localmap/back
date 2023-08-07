@@ -19,7 +19,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from accounts.serializers import UserSerializer, UserLoginSerializer, UserPwresetSerializer, UserPwchangeSerializer, UserUpdateSerializer
+from accounts.serializers import UserSerializer, UserLoginSerializer, UserPwresetSerializer, UserPwchangeSerializer, UserUpdateSerializer, UseremailcheckSerializer, UsernamecheckSerializer
 from accounts.token import account_activation_token
 from accounts.text import message, pw_reset_message
 from accounts.models import User
@@ -38,6 +38,7 @@ import string, random
         properties={
             'email': openapi.Schema(type=openapi.TYPE_STRING, description="이메일"),
             'password': openapi.Schema(type=openapi.TYPE_STRING, description="비밀번호"),
+            'pw_confirm': openapi.Schema(type=openapi.TYPE_STRING, description="비밀번호확인"),
             'name': openapi.Schema(type=openapi.TYPE_STRING, description="이름"),
             'location': openapi.Schema(type=openapi.TYPE_STRING, description="위치"),
         }
@@ -60,12 +61,15 @@ import string, random
 def signup(request):
     email = request.data.get('email')
     password = request.data.get('password')
+    pw_confirm = request.data.get('pw_confirm')
     name = request.data.get('name')
     location = request.data.get('location')
 
     try:
         validate_email(email)  # 이메일 주소를 유효성 검사
         hjd_instance, created = Hjd.objects.get_or_create(adm_nm=location)
+        if password != pw_confirm:
+            return Response({"message": "비밀번호를 다시 확인하세요"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = UserSerializer(data=request.data)
 
@@ -101,7 +105,6 @@ def login(request):
     """
     email = request.data['body']['email']
     password = request.data['body']['password']
-
     """
     email = request.data.get('email')
     password = request.data.get('password')
@@ -170,7 +173,7 @@ def pw_change(request):  # 비밀번호 재설정
         if new_pw != pw_confirm:
             return Response({"message": "새로운 비밀번호가 맞지 않습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
-        request.user.set_password(new_pw)
+        request.user.set_new_password(new_pw)
         return Response({"message": "비밀번호가 성공적으로 재설정되었습니다."}, status=status.HTTP_200_OK)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -257,3 +260,30 @@ def refresh_token(request):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
     else:
         return Response({"error": "RefreshToken이 제공되지 않았습니다."}, status=status.HTTP_400_BAD_REQUEST)
+
+@swagger_auto_schema(method='get', tags=['User'], query_serializer=UseremailcheckSerializer)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def check_email_duplication(request):
+    email = request.GET.get('email')
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return Response({"message": "유효한 이메일 주소를 입력해주세요."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if User.objects.filter(email=email).exists():
+        return Response({"message": "이미 사용 중인 이메일입니다."}, status=status.HTTP_409_CONFLICT)
+    else:
+        return Response({"message": "사용 가능한 이메일입니다."}, status=status.HTTP_200_OK)
+
+@swagger_auto_schema(method='get', tags=['User'], query_serializer=UsernamecheckSerializer)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def check_name_duplication(request):
+    name = request.GET.get('name')
+
+    if User.objects.filter(name=name).exists():
+        return Response({"message": "이미 사용 중인 이름입니다."}, status=status.HTTP_409_CONFLICT)
+    else:
+        return Response({"message": "사용 가능한 이름입니다."}, status=status.HTTP_200_OK)
