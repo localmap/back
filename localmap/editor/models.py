@@ -15,8 +15,13 @@ class Editor(models.Model):
     title = models.CharField(max_length=255, verbose_name="Title")
     content = models.TextField(verbose_name="Content")
     view = models.IntegerField(null=True, default=0)
+    url = models.ImageField(null=True)
 
     class Meta:
         db_table = 'editor'
         verbose_name = 'Editor'
         verbose_name_plural = 'Editors'
+
+    @property
+    def file_url(self):
+        return self.url.url

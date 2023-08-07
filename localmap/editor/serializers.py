@@ -16,7 +16,7 @@ class EditorSerializer_create(serializers.ModelSerializer):
 
     class Meta:
         model = Editor
-        fields = ['user', 'title', 'content', 'rest_id']
+        fields = ['user', 'title', 'content', 'rest_id','url']
 
 class RestaurantInfoSerializer(serializers.ModelSerializer):
     class Meta:

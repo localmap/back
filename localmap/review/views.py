@@ -1,21 +1,26 @@
+import uuid, os
+
 from django.shortcuts import get_object_or_404
+from django.db.models import Avg
+from django.http import JsonResponse
+from django.db import transaction
+from django.conf import settings
+
 from rest_framework import status, exceptions
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from django.db.models import Avg
+from rest_framework.parsers import MultiPartParser
+
 from review.serializers import ReviewSerializer, ReviewCreateSerializer
 from .models import Review, Photos
-from drf_yasg.utils import swagger_auto_schema
-from django.http import JsonResponse
-from rest_framework.parsers import MultiPartParser
-from drf_yasg import openapi
-import uuid, os
-from aws_module import upload_to_s3, delete_from_s3, AWS_STORAGE_BUCKET_NAME
-from django.db import transaction
 
-from django.conf import settings
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+from aws_module import upload_to_s3, delete_from_s3
+
 
 # swagger 데코레이터 설정
 file_param = openapi.Parameter('photos', openapi.IN_FORM, description="Select at least one photo file (jpeg/png)",
