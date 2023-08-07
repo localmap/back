@@ -1,28 +1,32 @@
-from drf_yasg import openapi
+from django.db import transaction
+from django.contrib.auth.models import update_last_login
+from django.contrib.sites.shortcuts import get_current_site
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.core.mail import EmailMessage
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.shortcuts import redirect
+
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
+
 from drf_yasg.utils import swagger_auto_schema
-from django.contrib.auth.models import update_last_login
-from accounts.serializers import UserSerializer, UserLoginSerializer, UserPwresetSerializer, UserPwchangeSerializer, \
-    UserUpdateSerializer
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
-from django.contrib.sites.shortcuts import get_current_site
-from django.core.mail import EmailMessage
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
+from drf_yasg import openapi
+
+from accounts.serializers import UserSerializer, UserLoginSerializer, UserPwresetSerializer, UserPwchangeSerializer, UserUpdateSerializer
 from accounts.token import account_activation_token
 from accounts.text import message, pw_reset_message
-from django.shortcuts import redirect
 from accounts.models import User
 from hjd.models import Hjd
-import string
-import random
-from django.db import transaction
+
+import string, random
+
 
 
 @swagger_auto_schema(
@@ -228,3 +232,28 @@ def activate(request, uidb64, token):
         return Response({"message": "유효성 검사 오류"}, status=status.HTTP_400_BAD_REQUEST)
     except KeyError:
         return Response({"message": "잘못된 키"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def refresh_token(request):
+
+    refresh_token_received = request.data.get('refresh_token')
+
+    if refresh_token_received:
+        try:
+            refresh_token_instance = RefreshToken(refresh_token_received)
+
+            new_access_token = refresh_token_instance.access_token
+            refresh_token_instance.set_jti()
+            refresh_token_instance.set_exp()
+
+            return Response({
+                'access_token': str(new_access_token),
+                'refresh_token': str(refresh_token_instance),
+            }, status=status.HTTP_200_OK)
+
+        except TokenError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        return Response({"error": "RefreshToken이 제공되지 않았습니다."}, status=status.HTTP_400_BAD_REQUEST)

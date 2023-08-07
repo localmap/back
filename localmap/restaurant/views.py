@@ -13,6 +13,8 @@ from drf_yasg.utils import swagger_auto_schema
 from math import sin, cos, radians, atan2, sqrt
 import time
 from rest_framework.pagination import LimitOffsetPagination
+
+
 @swagger_auto_schema(
     method='post',
     operation_id='식당 등록',
@@ -32,6 +34,7 @@ def rest_create(request):
         serializer.save(user=request.user)
         return Response(status=status.HTTP_201_CREATED)
 
+
 @swagger_auto_schema(
     method='get',
     operation_id='식당 리스트 조회',
@@ -42,9 +45,10 @@ def rest_create(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
 def rest_list(request):
-    rest_list = Restaurant.objects.all().select_related("user","category_name") #쿼리부분
+    rest_list = Restaurant.objects.all().select_related("user", "category_name")  # 쿼리부분
     serializer = RestSerializer(rest_list, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 @swagger_auto_schema(
     method='post',
@@ -69,6 +73,7 @@ def rest_detail(request, pk):
     serializer = RestDetailSerializer(rest)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 @swagger_auto_schema(
     method='put',
     operation_id='식당 수정',
@@ -89,6 +94,7 @@ def rest_update(request, pk):
         serializer.save()
         return Response(status=status.HTTP_200_OK)
 
+
 @swagger_auto_schema(
     method='delete',
     operation_id='식당 삭제',
@@ -105,7 +111,7 @@ def rest_delete(request, pk):
     return Response(status=status.HTTP_200_OK)
 
 
-#정상작동
+# 정상작동
 @swagger_auto_schema(
     method='get',
     operation_id='근처 이벤트 중인 식당',
@@ -158,7 +164,6 @@ def get_event_rest(request):
     latitude = request.GET.get('latitude', None)
     longitude = request.GET.get('longitude', None)
 
-
     # Category filtering
     category_filter = f"AND r.category_name = '{category}'" if category else ""
 
@@ -186,7 +191,7 @@ def get_event_rest(request):
         LEFT OUTER JOIN photos pho ON rev.review_id = pho.review_id
         WHERE pho.url IS NOT NULL
     )
-    SELECT r.category_name, r.rest_id, r.address, r.name, rrp.url AS most_recent_photo_url, ROUND(CAST(AVG(rev.rating) AS NUMERIC), 1) AS average_rating, r.view
+    SELECT r.category_name, r.rest_id, r.address, r.name, r.latitude, r.longitude, rrp.url AS most_recent_photo_url, ROUND(CAST(AVG(rev.rating) AS NUMERIC), 1) AS average_rating, r.view
     FROM restaurant r
     INNER JOIN events e ON r.rest_id = e.rest_id
     LEFT OUTER JOIN review rev ON r.rest_id = rev.rest_id
@@ -194,7 +199,7 @@ def get_event_rest(request):
     WHERE 1=1
     {category_filter}
     {nearby_filter}
-    GROUP BY r.rest_id, r.address, r.name, rrp.url, r.view
+    GROUP BY r.rest_id, r.address, r.name, rrp.url, r.view, r.latitude, r.longitude
     ORDER BY {order_by};
     """
 
@@ -209,21 +214,21 @@ def get_event_rest(request):
             'rest_id': row[1],
             'address': row[2].upper(),
             'name': row[3].upper(),
-            'most_recent_photo_url': row[4],
-            'average_rating': row[5],
-            'view': row[6],
+            'latitude': row[4],
+            'longitude': row[5],
+            'most_recent_photo_url': row[6],
+            'average_rating': row[7],
+            'view': row[8],
         }
         rest_list.append(rest_dict)
 
-    #페이지네이션
+    # 페이지네이션
     paginator = LimitOffsetPagination()
     limited_results = paginator.paginate_queryset(rest_list, request)
     return paginator.get_paginated_response(limited_results)
 
 
-
-
-#작동확인
+# 작동확인
 @swagger_auto_schema(
     method='get',
     operation_id='근처 식당',
@@ -303,14 +308,14 @@ def get_near_rest(request):
         LEFT OUTER JOIN photos pho ON rev.review_id = pho.review_id
         WHERE pho.url IS NOT NULL
     )
-    SELECT r.category_name, r.rest_id, r.address, r.name, rrp.url AS most_recent_photo_url, ROUND(CAST(AVG(rev.rating) AS NUMERIC), 1) AS average_rating, r.view
+    SELECT r.category_name, r.rest_id, r.address, r.name, r.latitude, r.longitude, rrp.url AS most_recent_photo_url, ROUND(CAST(AVG(rev.rating) AS NUMERIC), 1) AS average_rating, r.view
     FROM restaurant r
     LEFT OUTER JOIN review rev ON r.rest_id = rev.rest_id
     LEFT OUTER JOIN ranked_review_photos rrp ON r.rest_id = rrp.rest_id AND rrp.rn = 1
     WHERE 1=1
     {category_filter}
     {nearby_filter}
-    GROUP BY r.rest_id, r.address, r.name, rrp.url, r.view
+    GROUP BY r.rest_id, r.address, r.name, rrp.url, r.view, r.latitude, r.longitude
     ORDER BY {order_by};
     """
 
@@ -325,16 +330,17 @@ def get_near_rest(request):
             'rest_id': row[1],
             'address': row[2].upper(),
             'name': row[3].upper(),
-            'most_recent_photo_url': row[4],
-            'average_rating': row[5],
-            'view': row[6],
+            'latitude': row[4],
+            'longitude': row[5],
+            'most_recent_photo_url': row[6],
+            'average_rating': row[7],
+            'view': row[8],
         }
         rest_list.append(rest_dict)
 
     paginator = LimitOffsetPagination()
     limited_results = paginator.paginate_queryset(rest_list, request)
     return paginator.get_paginated_response(limited_results)
-
 
 
 @swagger_auto_schema(
@@ -428,7 +434,7 @@ def get_search_rest(request):
         LEFT OUTER JOIN photos pho ON rev.review_id = pho.review_id
         WHERE pho.url IS NOT NULL
     )
-    SELECT r.category_name, r.rest_id, r.address, r.name, rrp.url AS most_recent_photo_url, ROUND(CAST(AVG(rev.rating) AS NUMERIC), 1) AS average_rating, r.view
+    SELECT r.category_name, r.rest_id, r.address, r.name, r.latitude, r.longitude, rrp.url AS most_recent_photo_url, ROUND(CAST(AVG(rev.rating) AS NUMERIC), 1) AS average_rating, r.view
     FROM restaurant r
     LEFT OUTER JOIN review rev ON r.rest_id = rev.rest_id
     LEFT OUTER JOIN ranked_review_photos rrp ON r.rest_id = rrp.rest_id AND rrp.rn = 1
@@ -436,7 +442,7 @@ def get_search_rest(request):
     {category_filter}
     {nearby_filter}
     {search_filter}
-    GROUP BY r.rest_id, r.address, r.name, rrp.url, r.view
+    GROUP BY r.rest_id, r.address, r.name, rrp.url, r.view, r.latitude, r.longitude
     ORDER BY {order_by};
     """
 
@@ -451,13 +457,14 @@ def get_search_rest(request):
             'rest_id': row[1],
             'address': row[2].upper(),
             'name': row[3].upper(),
-            'most_recent_photo_url': row[4],
-            'average_rating': row[5],
-            'view': row[6],
+            'latitude': row[4],
+            'longitude': row[5],
+            'most_recent_photo_url': row[6],
+            'average_rating': row[7],
+            'view': row[8],
         }
         rest_list.append(rest_dict)
 
     paginator = LimitOffsetPagination()
     limited_results = paginator.paginate_queryset(rest_list, request)
     return paginator.get_paginated_response(limited_results)
-
