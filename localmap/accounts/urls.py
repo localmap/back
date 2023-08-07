@@ -14,4 +14,6 @@ urlpatterns = [
     path('pw_reset/', views.pw_reset, name='pw_reset'),
     path('activate/<str:uidb64>/<str:token>/', views.activate, name='activate'),
     path('refresh_token/', views.refresh_token, name='refresh_token'),
+    path('check_email/', views.check_email_duplication, name='check_email_duplication'),
+    path('check_name/', views.check_name_duplication, name='check_name_duplication'),
 ]
