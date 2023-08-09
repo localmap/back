@@ -19,7 +19,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from accounts.serializers import UserSerializer, UserLoginSerializer, UserPwresetSerializer, UserPwchangeSerializer, UserUpdateSerializer, UseremailcheckSerializer, UsernamecheckSerializer
+from accounts.serializers import UserSerializer, UserLoginSerializer, UserPwresetSerializer, UserPwchangeSerializer, UserUpdateSerializer, UseremailcheckSerializer, UsernamecheckSerializer, TokenSerializer
 from accounts.token import account_activation_token
 from accounts.text import message, pw_reset_message
 from accounts.models import User
@@ -237,6 +237,11 @@ def activate(request, uidb64, token):
         return Response({"message": "잘못된 키"}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@swagger_auto_schema(
+    method='post',
+    tags=['User'],
+    request_body=TokenSerializer
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def refresh_token(request):
