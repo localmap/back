@@ -20,6 +20,7 @@ from drf_yasg.utils import swagger_auto_schema
 
 from aws_module import upload_to_s3, delete_from_s3
 
+
 @swagger_auto_schema(
     method='post',
     operation_id='컬럼 등록',
@@ -29,24 +30,26 @@ from aws_module import upload_to_s3, delete_from_s3
 )
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsAdminUser])  # 어드민 유저만 식당 작성 가능
-@authentication_classes([JWTAuthentication]) # JWT 토큰 확인
+@authentication_classes([JWTAuthentication])  # JWT 토큰 확인
 @parser_classes([MultiPartParser])
 @transaction.atomic()
 def editor_create(request):
-    restaurants = request.data.pop('rest_id', [])
+    restaurants = request.data.pop('rest_id', [])[0]
     request_data = request.data.dict()
     request_image = request.FILES.get('image')
 
     serializer = EditorSerializer_create(data=request_data)
-    try:
-        if serializer.is_valid(raise_exception=True):
-            editor_obj = serializer.save(user=request.user)
+
+    if serializer.is_valid(raise_exception=True):
+        editor_obj = serializer.save(user=request.user)
 
     # 식당 객체를 추가하고 저장
-        for restaurant_id in restaurants:
-            restaurant = get_object_or_404(Restaurant, pk=restaurant_id)
-            editor_obj.rest_id.add(restaurant)
+    for restaurant_id in restaurants.split(','):
+        restaurant = get_object_or_404(Restaurant, pk=restaurant_id)
+        editor_obj.rest_id.add(restaurant)
 
+
+    try:
         if request_image:
             file_name = str(uuid.uuid4()) + os.path.splitext(request_image.name)[1]
 
@@ -54,15 +57,15 @@ def editor_create(request):
             s3_image_url = upload_to_s3(request_image, file_name)
 
         # 반환된 URL을 editor_obj에 저장
-            editor_obj.image_url = s3_image_url
+            editor_obj.url = s3_image_url
 
             editor_obj.save()
         return Response(status=status.HTTP_201_CREATED)
     except Exception as e:
-        # 이미 업로드된 파일을 S3에서 삭제합니다.
+    # 이미 업로드된 파일을 S3에서 삭제합니다.
         if request_image:
-            delete_from_s3(settings.AWS_STORAGE_BUCKET_NAME, s3_image_url)
-        # 예외 처리를 아래에 추가합니다.
+            delete_from_s3(settings.AWS_STORAGE_BUCKET_NAME, editor_obj.url)
+    # 예외 처리를 아래에 추가합니다.
         raise exceptions.APIException(str(e))
 
 
@@ -129,9 +132,18 @@ def editor_update(request, pk):
 @permission_classes([IsAuthenticated, IsAdminUser])  # 어드민 유저만 공지사항 삭제 가능
 @authentication_classes([JWTAuthentication])  # JWT 토큰 확인
 def editor_delete(request, pk):
-    rest = get_object_or_404(Editor, pk=pk)
-    rest.delete()
-    return Response(status=status.HTTP_200_OK)
+    editor_obj = get_object_or_404(Editor, pk=pk)
+
+    # S3에서 이미지를 삭제합니다.
+    if editor_obj.url:
+        file_name = str(editor_obj.url).replace("https://localmap.s3.ap-northeast-2.amazonaws.com/images/", "")
+        delete_from_s3(settings.AWS_STORAGE_BUCKET_NAME, file_name)
+
+    # 컬럼 객체를 삭제합니다.
+    editor_obj.delete()
+
+    # 성공적으로 삭제되면 204 No Content를 반환합니다.
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
@@ -144,22 +156,22 @@ def editor_delete(request, pk):
 @permission_classes([AllowAny])
 def editor_details(request, pk):
     query = """
-        SELECT
-            "editor"."ed_no",
-            "editor"."title",
-            "editor"."content",
-            "restaurant"."rest_id",
-            "restaurant"."category_name",
-            "restaurant"."name",
-            "restaurant"."contents"
-        FROM
-            "editor"
-        LEFT OUTER JOIN
-            "editor_rest_id" ON ("editor"."ed_no" = "editor_rest_id"."editor_id")
-        LEFT OUTER JOIN
-            "restaurant" ON ("editor_rest_id"."restaurant_id" = "restaurant"."rest_id")
-        WHERE
-            "editor"."ed_no" = %s
+    WITH ranked_review_photos AS (
+        SELECT rev.rest_id, pho.url, ROW_NUMBER() OVER (PARTITION BY rev.rest_id ORDER BY rev.created_at DESC) AS rn
+        FROM review rev
+        LEFT OUTER JOIN photos pho ON rev.review_id = pho.review_id
+        WHERE pho.url IS NOT NULL
+    )
+    SELECT e.ed_no, e.title, e.content, 
+    r.rest_id, r.name, r.latitude, r.longitude, r.category_name,
+    rrp.url AS most_recent_photo_url, ROUND(CAST(AVG(rev.rating) AS NUMERIC), 1) AS average_rating
+    FROM editor e
+    LEFT OUTER JOIN editor_rest_id er on e.ed_no = er.editor_id
+    LEFT OUTER JOIN restaurant r on er.restaurant_id = r.rest_id
+    LEFT OUTER JOIN review rev ON r.rest_id = rev.rest_id
+    LEFT OUTER JOIN ranked_review_photos rrp ON r.rest_id = rrp.rest_id AND rrp.rn = 1
+    WHERE 1=1
+    GROUP BY r.rest_id, r.address, r.name, rrp.url, r.view, r.latitude, r.longitude, e.ed_no, e.title, e.content ;
     """
 
     with connection.cursor() as cursor:
@@ -178,9 +190,12 @@ def editor_details(request, pk):
         if row[4]:
             restaurant_dict = {
                 'rest_id': row[3],
-                'category_name': row[4],
-                'name': row[5],
-                'contents': row[6],
+                'rest_name': row[4],
+                'latitude': row[5],
+                'longitude': row[6],
+                'category_name': row[7],
+                'url': row[8],
+                'grade': row[9],
             }
             restaurants_list.append(restaurant_dict)
     editor_dict['rest_id'] = restaurants_list

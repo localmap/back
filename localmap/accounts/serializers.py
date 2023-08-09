@@ -21,15 +21,15 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'email', 'password', 'name','location')
 
 class UserInfoSerializer(serializers.ModelSerializer):
-    email = serializers.SerializerMethodField()
-    name = serializers.SerializerMethodField()
-
-    def get_email(self, obj):
-        return obj.email
-
-    def get_name(self, obj):
-        return obj.name
-
+    # email = serializers.SerializerMethodField()
+    # name = serializers.SerializerMethodField()
+    #
+    # def get_email(self, obj):
+    #     return obj.email
+    #
+    # def get_name(self, obj):
+    #     return obj.name
+    #
     class Meta:
         model = get_user_model()
         fields = ('email','name')
@@ -81,3 +81,6 @@ class UsernamecheckSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = ('name', )
+
+class TokenSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField()

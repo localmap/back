@@ -144,11 +144,24 @@ def review_user(request, user):
 )
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
-@authentication_classes([JWTAuthentication])  # JWT 토큰 확인
+@authentication_classes([JWTAuthentication])
 def review_delete(request, pk):
-    rest = get_object_or_404(Review, pk=pk)
-    rest.delete()
-    return Response(status=status.HTTP_200_OK)
+    review = get_object_or_404(Review, pk=pk)
+
+    # 연관된 사진 모든 S3에서 삭제합니다.
+    photos = Photos.objects.filter(review=review)
+    for photo in photos:
+        file_name = str(photo.url).replace("https://localmap.s3.ap-northeast-2.amazonaws.com/images/", "")
+        delete_from_s3(settings.AWS_STORAGE_BUCKET_NAME, file_name)
+
+        # 연관된 사진 객체를 삭제합니다.
+        photo.delete()
+
+    # 리뷰 객체를 삭제합니다.
+    review.delete()
+
+    # 성공적으로 삭제되면 204 No Content를 반환합니다.
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @swagger_auto_schema(
