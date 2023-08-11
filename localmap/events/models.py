@@ -12,3 +12,7 @@ class Events(models.Model):
 
     class Meta:
         db_table = 'events'
+
+    @property
+    def file_url(self):
+        return self.url.url
