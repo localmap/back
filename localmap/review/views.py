@@ -8,10 +8,11 @@ from django.conf import settings
 
 from rest_framework import status, exceptions
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes, authentication_classes, parser_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, parser_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser
+from rest_framework.throttling import UserRateThrottle
 
 from review.serializers import ReviewSerializer, ReviewCreateSerializer
 from .models import Review, Photos
@@ -20,6 +21,9 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from aws_module import upload_to_s3, delete_from_s3
+
+class ReviewcreateThrottle(UserRateThrottle):
+    rate = '10/day'  # 하루에 최대 10개의 요청
 
 
 # swagger 데코레이터 설정
@@ -41,6 +45,7 @@ file_param = openapi.Parameter('photos', openapi.IN_FORM, description="Select at
 @authentication_classes([JWTAuthentication])  # JWT 토큰 확인
 @parser_classes([MultiPartParser])
 @transaction.atomic()
+@throttle_classes([ReviewcreateThrottle])
 def review_create(request):
     # import data
     request_data = request.data.dict()
