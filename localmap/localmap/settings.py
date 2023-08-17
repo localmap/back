@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'review',
     'menu',
     'storages',
+    'django_redis',
 ]
 
 AUTH_USER_MODEL = 'accounts.User'  # 커스텀 유저를 장고에서 사용하기 위함
@@ -93,6 +94,20 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
+REDIS_HOST = 'localhost' # Redis 서버 주소
+REDIS_PORT = '6379'  # Redis 포트 번호
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "MAX_ENTRIES": 1000,
+        }
+    }
+}
+
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -102,6 +117,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'middleware.TokenBlacklistMiddleware',
 
 ]
 

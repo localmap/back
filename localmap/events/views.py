@@ -17,7 +17,11 @@ from .models import Events
 
 from drf_yasg.utils import swagger_auto_schema
 
-from aws_module import upload_to_s3, delete_from_s3
+from aws_module import upload_to_s3, delete_from_s3, resize_image
+
+
+
+
 
 
 @swagger_auto_schema(
@@ -45,18 +49,19 @@ def event_create(request):
         if request_image:
             file_name = str(uuid.uuid4()) + os.path.splitext(request_image.name)[1]
 
-        # aws_module을 이용하여 S3에 사진 업로드
-            s3_image_url = upload_to_s3(request_image, file_name)
+            # 이미지 크기 줄이기
+            resized_image = resize_image(request_image, 640)
+
+            # aws_module을 이용하여 S3에 사진 업로드
+            s3_image_url = upload_to_s3(resized_image, file_name)
 
             event_obj.url = s3_image_url
-
             event_obj.save()
+
         return Response(status=status.HTTP_201_CREATED)
     except Exception as e:
-
         if request_image:
             delete_from_s3(settings.AWS_STORAGE_BUCKET_NAME, event_obj.url)
-
         raise exceptions.APIException(str(e))
 
 

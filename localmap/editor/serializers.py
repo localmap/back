@@ -5,11 +5,11 @@ from accounts.serializers import UserInfoSerializer
 
 
 class EditorSerializer(serializers.ModelSerializer):
-    user = UserInfoSerializer(read_only=True) # 유저 정보를 가져온다 !
+    url = serializers.ReadOnlyField(source='file_url')
 
     class Meta:
         model = Editor
-        fields = '__all__'
+        fields = ['ed_no', 'title', 'content', 'rest_id', 'url', 'view']
 
 class EditorSerializer_create(serializers.ModelSerializer):
     rest_id = serializers.PrimaryKeyRelatedField(queryset=Restaurant.objects.all(), many=True, required=False)
@@ -30,3 +30,9 @@ class EditorDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Editor
         fields = ('ed_no', 'title', 'content', 'rest_id')
+
+class EditorDeleteSerializer(serializers.ModelSerializer):
+    user = UserInfoSerializer(read_only=True)
+    class Meta:
+        model = Editor
+        fields = '__all__'

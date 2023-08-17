@@ -13,7 +13,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser
 
 from restaurant.models import Restaurant
-from editor.serializers import EditorSerializer, EditorSerializer_create, EditorDetailSerializer
+from editor.serializers import EditorSerializer, EditorSerializer_create, EditorDetailSerializer, EditorDeleteSerializer
 from .models import Editor
 
 from drf_yasg.utils import swagger_auto_schema
@@ -126,7 +126,7 @@ def editor_update(request, pk):
     operation_id='컬럼 삭제',
     operation_description='컬럼을 삭제합니다',
     tags=['Editor'],
-    responses={200: EditorSerializer}
+    responses={200: EditorDeleteSerializer}
 )
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated, IsAdminUser])  # 어드민 유저만 공지사항 삭제 가능

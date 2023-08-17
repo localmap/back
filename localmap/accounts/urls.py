@@ -16,4 +16,5 @@ urlpatterns = [
     path('refresh_token/', views.refresh_token, name='refresh_token'),
     path('check_email/', views.check_email_duplication, name='check_email_duplication'),
     path('check_name/', views.check_name_duplication, name='check_name_duplication'),
+    path('logout/', views.logout, name='logout'),
 ]

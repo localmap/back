@@ -124,21 +124,6 @@ def review_user(request, user):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# @swagger_auto_schema(
-#     method='get',
-#     operation_id='리뷰 조회',
-#     operation_description='user별 리뷰 조회',
-#     tags=['Review'],
-#     responses={200: ReviewSerializer}
-# )
-# @api_view(['GET'])
-# @permission_classes([AllowAny])
-# def review_user(request, user):
-#     users = Review.objects.filter(user=user)
-#     serializer = ReviewSerializer(users, many=True)
-#
-#     return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 @swagger_auto_schema(
     method='delete',
@@ -196,23 +181,4 @@ def get_avg_rating_user(request, user):
     avg_rating = Review.objects.filter(user=user).aggregate(Avg('rating'))['rating__avg']
     return JsonResponse({"average_rating": avg_rating})
 
-
-@swagger_auto_schema(
-    method='post',
-    operation_id='s3 사진 삭제',
-    operation_description='s3 사진을 삭제합니다',
-    tags=['Review'],
-    request_body=openapi.Schema(
-        type=openapi.TYPE_OBJECT,
-        properties={
-            'image_name': openapi.Schema(type=openapi.TYPE_STRING, description="이미지 키값"),
-        }
-    ),
-)
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def s3_image_delete(request):
-    image_name = request.data.get('image_name')
-    delete_from_s3(settings.AWS_STORAGE_BUCKET_NAME, image_name)
-    return Response(status=status.HTTP_200_OK)
 
