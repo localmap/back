@@ -129,7 +129,24 @@ def login(request):
         # 인증에 실패한 경우알림
         return Response({'message': '아이디 또는 비밀번호가 일치하지 않습니다.'}, status=status.HTTP_401_UNAUTHORIZED)
 
+from django.http import JsonResponse
+from token_management import add_token_to_blacklist
+@swagger_auto_schema(method='post', request_body=UserLoginSerializer, tags=['User'], )
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def logout(request):
+    jwt_auth = JWTAuthentication()
+    header = jwt_auth.get_header(request)
 
+    if header is not None:
+        token = jwt_auth.get_raw_token(header)
+        if token is not None:
+            add_token_to_blacklist(token)
+            return JsonResponse({'message': '로그아웃되었습니다.'})
+        else:
+            return JsonResponse({'message': '유효한 토큰이 없습니다.'}, status=401)
+    else:
+        return JsonResponse({'message': '헤더에 토큰이 없습니다.'}, status=401)
 @swagger_auto_schema(method='delete', tags=['User'], )
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])

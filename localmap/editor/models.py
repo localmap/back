@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from restaurant.models import Restaurant
 import uuid
+from urllib.parse import urlparse
 
 class Editor(models.Model):
     ed_no = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -24,4 +25,6 @@ class Editor(models.Model):
 
     @property
     def file_url(self):
-        return self.url.url
+        parsed_url = urlparse(self.url.url)
+        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+        return clean_url

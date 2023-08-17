@@ -11,5 +11,5 @@ class SggSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Hjd
-        fields = ('adm_nm',)
+        fields = ('adm_nm','id')
 
