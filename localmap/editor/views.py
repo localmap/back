@@ -11,12 +11,14 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser
+from rest_framework.pagination import LimitOffsetPagination
 
 from restaurant.models import Restaurant
 from editor.serializers import EditorSerializer, EditorSerializer_create, EditorDetailSerializer, EditorDeleteSerializer
 from .models import Editor
 
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from aws_module import upload_to_s3, delete_from_s3
 
@@ -48,24 +50,23 @@ def editor_create(request):
         restaurant = get_object_or_404(Restaurant, pk=restaurant_id)
         editor_obj.rest_id.add(restaurant)
 
-
     try:
         if request_image:
             file_name = str(uuid.uuid4()) + os.path.splitext(request_image.name)[1]
 
-        # aws_module을 이용하여 S3에 사진 업로드
+            # aws_module을 이용하여 S3에 사진 업로드
             s3_image_url = upload_to_s3(request_image, file_name)
 
-        # 반환된 URL을 editor_obj에 저장
+            # 반환된 URL을 editor_obj에 저장
             editor_obj.url = s3_image_url
 
             editor_obj.save()
         return Response(status=status.HTTP_201_CREATED)
     except Exception as e:
-    # 이미 업로드된 파일을 S3에서 삭제합니다.
+        # 이미 업로드된 파일을 S3에서 삭제합니다.
         if request_image:
             delete_from_s3(settings.AWS_STORAGE_BUCKET_NAME, editor_obj.url)
-    # 예외 처리를 아래에 추가합니다.
+        # 예외 처리를 아래에 추가합니다.
         raise exceptions.APIException(str(e))
 
 
@@ -74,14 +75,31 @@ def editor_create(request):
     operation_id='컬럼 리스트 조회',
     operation_description='컬럼 전체를 조회합니다',
     tags=['Editor'],
-    responses={200: EditorSerializer}
+    responses={200: EditorSerializer},
+    manual_parameters=[
+        openapi.Parameter(
+            name='limit',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='한 페이지에 표시될 게시물 갯수'
+        ),
+        openapi.Parameter(
+            name='offset',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='현재 페이지'
+        ),
+    ],
 )
 @api_view(['GET'])
 @permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
 def editor_list(request):
     rest_list = Editor.objects.all().select_related('user').prefetch_related('rest_id')  # 쿼리부분
-    serializer = EditorSerializer(rest_list, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    paginator = LimitOffsetPagination()
+
+    limited_results = paginator.paginate_queryset(rest_list, request)
+    serializer = EditorSerializer(limited_results, many=True)
+    return paginator.get_paginated_response(serializer.data)
 
 
 @swagger_auto_schema(
@@ -100,25 +118,25 @@ def editor_detail(request, pk):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-@swagger_auto_schema(
-    method='put',
-    operation_id='컬럼 수정',
-    operation_description='컬럼을 수정합니다',
-    tags=['Editor'],
-    responses={200: EditorSerializer},
-    request_body=EditorSerializer
-)
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated, IsAdminUser])  # 어드민 유저만 공지사항 수정 가능
-@authentication_classes([JWTAuthentication])  # JWT 토큰 확인
-def editor_update(request, pk):
-    rest = get_object_or_404(Editor, pk=pk)
-    # instance를 지정해줘야 수정될 때 해당 정보가 먼저 들어간 뒤 수정(안정적이다)
-    serializer = EditorSerializer(instance=rest, data=request.data)
-
-    if serializer.is_valid(raise_exception=True):
-        serializer.save()
-        return Response(status=status.HTTP_200_OK)
+# @swagger_auto_schema(
+#     method='put',
+#     operation_id='컬럼 수정',
+#     operation_description='컬럼을 수정합니다',
+#     tags=['Editor'],
+#     responses={200: EditorSerializer},
+#     request_body=EditorSerializer
+# )
+# @api_view(['PUT'])
+# @permission_classes([IsAuthenticated, IsAdminUser])  # 어드민 유저만 공지사항 수정 가능
+# @authentication_classes([JWTAuthentication])  # JWT 토큰 확인
+# def editor_update(request, pk):
+#     rest = get_object_or_404(Editor, pk=pk)
+#     # instance를 지정해줘야 수정될 때 해당 정보가 먼저 들어간 뒤 수정(안정적이다)
+#     serializer = EditorSerializer(instance=rest, data=request.data)
+#
+#     if serializer.is_valid(raise_exception=True):
+#         serializer.save()
+#         return Response(status=status.HTTP_200_OK)
 
 
 @swagger_auto_schema(

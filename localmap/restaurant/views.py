@@ -111,7 +111,6 @@ def rest_delete(request, pk):
     return Response(status=status.HTTP_200_OK)
 
 
-# 정상작동
 @swagger_auto_schema(
     method='get',
     operation_id='근처 이벤트 중인 식당',
@@ -228,7 +227,6 @@ def get_event_rest(request):
     return paginator.get_paginated_response(limited_results)
 
 
-# 작동확인
 @swagger_auto_schema(
     method='get',
     operation_id='근처 식당',

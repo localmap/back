@@ -2,6 +2,7 @@ from django.db import models
 from restaurant.models import Restaurant
 from django.conf import settings
 import uuid
+from urllib.parse import urlparse, unquote
 
 class Review(models.Model):
     review_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -31,4 +32,8 @@ class Photos(models.Model):
 
     @property
     def file_url(self):
-        return self.url.url
+        parsed_url = urlparse(self.url.url)
+        decoded_path = unquote(parsed_url.path)
+        if decoded_path.startswith('/'):
+            decoded_path = decoded_path[1:]
+        return decoded_path
