@@ -1,7 +1,7 @@
 from django.contrib.gis.db import models
 
 class Hjd(models.Model):
-    geom = models.GeometryField()
+    geom = models.GeometryField(null=True)
     adm_nm = models.CharField(unique=True)
     sidonm = models.CharField()
     temp = models.CharField()
