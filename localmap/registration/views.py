@@ -1,13 +1,17 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.throttling import UserRateThrottle
 from registration.serializers import RegSerializer, ReglistSerializer
 from .models import Registration
 
 from drf_yasg.utils import swagger_auto_schema
+
+class RegcreateThrottle(UserRateThrottle):
+    rate = '10/day'  # 하루에 최대 10개의 요청
 
 @swagger_auto_schema(
     method='post',
@@ -19,6 +23,7 @@ from drf_yasg.utils import swagger_auto_schema
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])  #유저인 경우
 @authentication_classes([JWTAuthentication])  # JWT 토큰 확인
+@throttle_classes([RegcreateThrottle])
 def reg_create(request):
     serializer = RegSerializer(data=request.data)
 

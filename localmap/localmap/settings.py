@@ -75,6 +75,10 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',  # JWT를 통한 인증방식 사용
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',  # 비인증된 사용자에 대한 쓰로틀링
+        'rest_framework.throttling.UserRateThrottle',  # 인증된 사용자에 대한 쓰로틀링
+    ),
 }
 
 REST_USE_JWT = True

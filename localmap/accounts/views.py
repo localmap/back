@@ -9,12 +9,13 @@ from django.utils.encoding import force_bytes, force_str
 from django.shortcuts import redirect
 
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, throttle_classes
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework.throttling import AnonRateThrottle
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -28,6 +29,8 @@ from hjd.models import Hjd
 
 import string, random
 
+class PwrestThrottle(AnonRateThrottle):
+    rate = '3/day'  # 하루에 최대 3개의 요청
 
 @swagger_auto_schema(
     method='post',
@@ -216,6 +219,7 @@ def pw_change(request):  # 비밀번호 재설정
 @swagger_auto_schema(method='post', tags=['User'], request_body=UserPwresetSerializer)
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PwrestThrottle])
 def pw_reset(request):  # 임시 비밀번호 전송
 
     """
