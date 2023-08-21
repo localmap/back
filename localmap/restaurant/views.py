@@ -418,7 +418,7 @@ def get_search_rest(request):
     if latitude and longitude:
         # Distance calculation and filtering for nearby restaurants (within 5km)
         earth_radius = 6371  # Radius of the Earth in km
-        nearby_distance = 5  # Distance in km
+        nearby_distance = 1000  # Distance in km
 
         query_latitude = float(latitude)
         query_longitude = float(longitude)
