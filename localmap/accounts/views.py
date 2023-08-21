@@ -20,7 +20,8 @@ from rest_framework.throttling import AnonRateThrottle
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from accounts.serializers import UserSerializer, UserLoginSerializer, UserPwresetSerializer, UserPwchangeSerializer, UserUpdateSerializer, UseremailcheckSerializer, UsernamecheckSerializer, TokenSerializer
+from accounts.serializers import UserSerializer, UserLoginSerializer, UserPwresetSerializer, UserPwchangeSerializer, \
+    UserUpdateSerializer, UseremailcheckSerializer, UsernamecheckSerializer, TokenSerializer
 from accounts.token import account_activation_token
 from accounts.text import message, pw_reset_message
 from accounts.models import User
@@ -61,6 +62,13 @@ class PwrestThrottle(AnonRateThrottle):
 @permission_classes([AllowAny])
 @transaction.atomic()
 def signup(request):
+    """
+    email = request.data['body']['email']
+    password = request.data['body']['password']
+    pw_confirm = request.data['body']['pw_confirm']
+    name = request.data['body']['name']
+    location = request.data['body']['location']
+    """
     email = request.data.get('email')
     password = request.data.get('password')
     pw_confirm = request.data.get('pw_confirm')
@@ -131,8 +139,11 @@ def login(request):
         # 인증에 실패한 경우알림
         return Response({'message': '아이디 또는 비밀번호가 일치하지 않습니다.'}, status=status.HTTP_401_UNAUTHORIZED)
 
+
 from django.http import JsonResponse
 from token_management import add_token_to_blacklist
+
+
 @swagger_auto_schema(method='post', request_body=UserLoginSerializer, tags=['User'], )
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -149,6 +160,8 @@ def logout(request):
             return JsonResponse({'message': '유효한 토큰이 없습니다.'}, status=401)
     else:
         return JsonResponse({'message': '헤더에 토큰이 없습니다.'}, status=401)
+
+
 @swagger_auto_schema(method='delete', tags=['User'], )
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
@@ -179,6 +192,12 @@ def update(request):
 def pw_change(request):  # 비밀번호 재설정
     serializer = UserPwchangeSerializer(data=request.data)
     if serializer.is_valid():
+
+        """
+        password = request.data['body']['password']
+        new_pw = request.data['body']['new_pw']
+        pw_confirm = request.data['body']['pw_confirm']
+        """
         password = request.data.get('password')
         new_pw = request.data.get('new_pw')
         pw_confirm = request.data.get('pw_confirm')
@@ -202,6 +221,11 @@ def pw_change(request):  # 비밀번호 재설정
 @permission_classes([AllowAny])
 @throttle_classes([PwrestThrottle])
 def pw_reset(request):  # 임시 비밀번호 전송
+
+    """
+    email = request.data['body']['email']
+    name = request.data['body']['name']
+    """
     email = request.data.get('email')
     name = request.data.get('name')
     try:
@@ -264,7 +288,9 @@ def activate(request, uidb64, token):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def refresh_token(request):
-
+    """
+    refresh_token_received = request.data['body']['refresh_token']
+    """
     refresh_token_received = request.data.get('refresh_token')
 
     if refresh_token_received:
@@ -285,6 +311,7 @@ def refresh_token(request):
     else:
         return Response({"error": "RefreshToken이 제공되지 않았습니다."}, status=status.HTTP_400_BAD_REQUEST)
 
+
 @swagger_auto_schema(method='get', tags=['User'], query_serializer=UseremailcheckSerializer)
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -300,6 +327,7 @@ def check_email_duplication(request):
         return Response({"message": "이미 사용 중인 이메일입니다."}, status=status.HTTP_409_CONFLICT)
     else:
         return Response({"message": "사용 가능한 이메일입니다."}, status=status.HTTP_200_OK)
+
 
 @swagger_auto_schema(method='get', tags=['User'], query_serializer=UsernamecheckSerializer)
 @api_view(['GET'])

@@ -28,9 +28,17 @@ from hjd.models import Hjd
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def hjd_search(request):
+    """
     point = Point(request.data.get('longitude'), request.data.get('latitude'), srid=4326)
+
+    """
+    point = Point(request.data['body']['longitude'], request.data['body']['latitude'], srid=4326)
     point_transformed = point.transform(3857, clone=True)
+    """
     buffer = point_transformed.buffer(request.data.get('radius'))
+    
+    """
+    buffer = point_transformed.buffer(request.data['body']['radius'])
     polygon = GEOSGeometry(buffer, srid=3857)
 
     hjd_objects = Hjd.objects.filter(geom__intersects=Transform(polygon, 4326))
