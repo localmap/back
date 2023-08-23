@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'events',
     'review',
     'menu',
+    'bks',
     'storages',
     'django_redis',
 ]
