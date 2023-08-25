@@ -8,4 +8,5 @@ urlpatterns = [
 #    path('update/<uuid:pk>', views.editor_update, name='editor_update'),
     path('delete/<uuid:pk>', views.editor_delete, name='editor_delete'),
     path('details/<uuid:pk>', views.editor_details, name='editor_details'),
+    path('search/', views.editor_search, name='editor_search'),
 ]
