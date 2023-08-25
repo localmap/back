@@ -22,6 +22,7 @@ from drf_yasg import openapi
 
 from aws_module import upload_to_s3, delete_from_s3
 
+from django.db.models import Q
 
 @swagger_auto_schema(
     method='post',
@@ -218,6 +219,49 @@ def editor_details(request, pk):
             restaurants_list.append(restaurant_dict)
     editor_dict['rest_id'] = restaurants_list
     return JsonResponse(editor_dict, status=200)
+
+
+
+
+@swagger_auto_schema(
+    method='get',
+    operation_id='컬럼 검색',
+    operation_description='컬럼을 검색합니다',
+    tags=['Editor'],
+    responses={200: EditorSerializer},
+    manual_parameters=[
+        openapi.Parameter(
+            name='limit',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='한 페이지에 표시될 게시물 갯수'
+        ),
+        openapi.Parameter(
+            name='offset',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_NUMBER,
+            description='현재 페이지'
+        ),
+        openapi.Parameter(
+            name='search',
+            in_=openapi.IN_QUERY,
+            type=openapi.TYPE_STRING,
+            description='검색할 제목'
+        ),
+     ],
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
+def editor_search(request):
+    search_query = request.GET.get('search', '')
+    rest_list = Editor.objects.filter(Q(title__icontains=search_query)).select_related('user').prefetch_related(
+        'rest_id')
+
+    paginator = LimitOffsetPagination()
+    limited_results = paginator.paginate_queryset(rest_list, request)
+
+    serializer = EditorSerializer(limited_results, many=True)
+    return paginator.get_paginated_response(serializer.data)
 
 
 """
