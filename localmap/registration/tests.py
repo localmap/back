@@ -5,7 +5,6 @@ from restaurant.models import Categories
 from registration.models import Registration
 from accounts.models import User
 
-
 class RegistrationAPITestCase(APITestCase):
 
     def setUp(self):
