@@ -20,7 +20,7 @@ from .models import Review, Photos
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from aws_module import upload_to_s3, delete_from_s3
+from aws_module import upload_to_s3, delete_from_s3, resize_review_image
 
 class ReviewcreateThrottle(UserRateThrottle):
     rate = '10/day'  # 하루에 최대 10개의 요청
@@ -73,9 +73,10 @@ def review_create(request):
 
         for index, image in enumerate(request_images):
             file_name = uploaded_file_names[index]
+            resized_image = resize_review_image(image)
 
             # `upload_to_s3()` 함수 호출
-            url = upload_to_s3(image, file_name)
+            url = upload_to_s3(resized_image, file_name)
 
             # 업로드된 사진 URL 업데이트
             uploaded_photos[index].url = url

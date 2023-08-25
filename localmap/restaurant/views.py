@@ -13,7 +13,7 @@ from drf_yasg.utils import swagger_auto_schema
 from math import sin, cos, radians, atan2, sqrt
 import time
 from rest_framework.pagination import LimitOffsetPagination
-
+from custom_page import CustomPagination
 
 @swagger_auto_schema(
     method='post',
@@ -222,7 +222,7 @@ def get_event_rest(request):
         rest_list.append(rest_dict)
 
     # 페이지네이션
-    paginator = LimitOffsetPagination()
+    paginator = CustomPagination()
     limited_results = paginator.paginate_queryset(rest_list, request)
     return paginator.get_paginated_response(limited_results)
 
@@ -336,7 +336,7 @@ def get_near_rest(request):
         }
         rest_list.append(rest_dict)
 
-    paginator = LimitOffsetPagination()
+    paginator = CustomPagination()
     limited_results = paginator.paginate_queryset(rest_list, request)
     return paginator.get_paginated_response(limited_results)
 
@@ -463,6 +463,6 @@ def get_search_rest(request):
         }
         rest_list.append(rest_dict)
 
-    paginator = LimitOffsetPagination()
+    paginator = CustomPagination()
     limited_results = paginator.paginate_queryset(rest_list, request)
     return paginator.get_paginated_response(limited_results)

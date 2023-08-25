@@ -11,7 +11,7 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser
-from rest_framework.pagination import LimitOffsetPagination
+from custom_page import CustomPagination
 
 from restaurant.models import Restaurant
 from editor.serializers import EditorSerializer, EditorSerializer_create, EditorDetailSerializer, EditorDeleteSerializer
@@ -20,7 +20,7 @@ from .models import Editor
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from aws_module import upload_to_s3, delete_from_s3
+from aws_module import upload_to_s3, delete_from_s3, resize_editor_image
 
 from django.db.models import Q
 
@@ -55,8 +55,9 @@ def editor_create(request):
         if request_image:
             file_name = str(uuid.uuid4()) + os.path.splitext(request_image.name)[1]
 
+            resized_image = resize_editor_image(request_image)
             # aws_module을 이용하여 S3에 사진 업로드
-            s3_image_url = upload_to_s3(request_image, file_name)
+            s3_image_url = upload_to_s3(resized_image, file_name)
 
             # 반환된 URL을 editor_obj에 저장
             editor_obj.url = s3_image_url
@@ -96,7 +97,7 @@ def editor_create(request):
 @permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
 def editor_list(request):
     rest_list = Editor.objects.all().select_related('user').prefetch_related('rest_id')  # 쿼리부분
-    paginator = LimitOffsetPagination()
+    paginator = CustomPagination()
 
     limited_results = paginator.paginate_queryset(rest_list, request)
     serializer = EditorSerializer(limited_results, many=True)
@@ -231,18 +232,6 @@ def editor_details(request, pk):
     responses={200: EditorSerializer},
     manual_parameters=[
         openapi.Parameter(
-            name='limit',
-            in_=openapi.IN_QUERY,
-            type=openapi.TYPE_NUMBER,
-            description='한 페이지에 표시될 게시물 갯수'
-        ),
-        openapi.Parameter(
-            name='offset',
-            in_=openapi.IN_QUERY,
-            type=openapi.TYPE_NUMBER,
-            description='현재 페이지'
-        ),
-        openapi.Parameter(
             name='search',
             in_=openapi.IN_QUERY,
             type=openapi.TYPE_STRING,
@@ -250,18 +239,16 @@ def editor_details(request, pk):
         ),
      ],
 )
+
 @api_view(['GET'])
 @permission_classes([AllowAny])  # 글 확인은 로그인 없이 가능
 def editor_search(request):
     search_query = request.GET.get('search', '')
     rest_list = Editor.objects.filter(Q(title__icontains=search_query)).select_related('user').prefetch_related(
-        'rest_id')
+        'rest_id').order_by('?')[:3]
 
-    paginator = LimitOffsetPagination()
-    limited_results = paginator.paginate_queryset(rest_list, request)
-
-    serializer = EditorSerializer(limited_results, many=True)
-    return paginator.get_paginated_response(serializer.data)
+    serializer = EditorSerializer(rest_list, many=True)
+    return Response(serializer.data)
 
 
 """
