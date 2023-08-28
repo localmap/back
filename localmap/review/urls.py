@@ -8,6 +8,4 @@ urlpatterns = [
     path('delete/<uuid:pk>/', views.review_delete, name='review_delete'),
     path('rest_rate/<uuid:rest_id>/', views.get_avg_rating_rest, name='get_avg_rating_rest'),
     path('user_rate/<str:user>/', views.get_avg_rating_user, name='get_avg_rating_user'),
-
-
 ]

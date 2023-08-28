@@ -11,5 +11,4 @@ urlpatterns = [
     path('get_event_rest/', views.get_event_rest, name='get_event_rest'),
     path('get_near_rest/', views.get_near_rest, name='get_near_rest'),
     path('get_search_rest/', views.get_search_rest, name='get_search_rest'),
-
 ]

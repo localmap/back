@@ -1,7 +1,6 @@
 from django.urls import path
 from . import views
 
-
 urlpatterns = [
     path('create/', views.notice_create, name='notice_create'),
     path('list/', views.notice_list, name='notice_list'),
